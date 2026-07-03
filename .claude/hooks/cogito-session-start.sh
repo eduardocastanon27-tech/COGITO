@@ -67,6 +67,12 @@ if [ ! -f "$LEDGER" ]; then
   fi
 fi
 
+# Merge any global write-queues into canon (lessons/strategies captured by
+# cogito-learn.sh in OTHER directories since the last cogito session). Fail-open;
+# converge carries the merged brain to main at Stop.
+RECONCILE="$REPO/scripts/cogito-reconcile.sh"
+if [ -x "$RECONCILE" ]; then "$RECONCILE" 2>/dev/null || true; fi
+
 # Inject operating context (SessionStart stdout is added to the session).
 cat <<'CTX'
 Cogito protocol is active for this session.
