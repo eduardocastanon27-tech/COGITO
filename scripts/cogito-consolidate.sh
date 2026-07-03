@@ -71,10 +71,14 @@ verify() {
     return 0
   fi
 
+  # Membership check via herestring, NOT a pipe: under `set -o pipefail`, grep -q
+  # exits at first match and SIGPIPEs the printf feeding it (exit 141), so a
+  # SUCCESSFUL match randomly read as failure — the gate false-FAILED with a
+  # different missing-set on every run (caught 2026-07-03).
   missing=""
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    printf '%s\n' "$added_archive" | grep -qxF -- "$line" || missing+="$line"$'\n'
+    grep -qxF -- "$line" <<< "$added_archive" || missing+="$line"$'\n'
   done <<< "$removed"
 
   count_rm="$(printf '%s' "$removed"        | grep -c '^- ' || true)"
