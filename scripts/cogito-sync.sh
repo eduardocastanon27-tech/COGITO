@@ -24,13 +24,22 @@ mkdir -p "$DST"
 # temp files and refuses to install an EMPTY ledger, so a partial/failed read can
 # never blank the brain. Returns non-zero (-> caller falls back) on any problem.
 load_canonical() {
-  local root="$1" t_les
+  local root="$1" t_les t_pb
   git -C "$root" cat-file -e "$BRAIN_REF:$SUB/LESSONS.md" 2>/dev/null || return 1
   t_les="$(mktemp)"
   if git -C "$root" show "$BRAIN_REF:$SUB/LESSONS.md" > "$t_les" 2>/dev/null && [ -s "$t_les" ]; then
     mv "$t_les" "$DST/LESSONS.md"
   else
     rm -f "$t_les"; return 1
+  fi
+  # PLAYBOOK.md is data-class like LESSONS (strategies, not operating instructions) —
+  # same canonical read, same refuse-empty guard. Best-effort: an old ref without it
+  # must not fail the lesson load.
+  t_pb="$(mktemp)"
+  if git -C "$root" show "$BRAIN_REF:$SUB/PLAYBOOK.md" > "$t_pb" 2>/dev/null && [ -s "$t_pb" ]; then
+    mv "$t_pb" "$DST/PLAYBOOK.md"
+  else
+    rm -f "$t_pb"
   fi
   # SKILL.md is intentionally NOT synced from the remote (supply-chain: auto-overwriting the
   # agent's own operating instructions from a remote tip = silent reprogramming). Keep the
@@ -50,6 +59,7 @@ if [ -n "$root" ] && [ -f "$root/$SUB/LESSONS.md" ] \
   else
     # offline / fresh clone / ref missing -> working-tree fallback (the safety net)
     cp -f "$root/$SUB/SKILL.md"   "$DST/SKILL.md"   2>/dev/null || true
+    cp -f "$root/$SUB/PLAYBOOK.md" "$DST/PLAYBOOK.md" 2>/dev/null || true
     cp -f "$root/$SUB/LESSONS.md" "$DST/LESSONS.md"
     src="local working tree (fallback; $BRAIN_REF unreachable)"
   fi
@@ -57,6 +67,7 @@ else
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
   if git clone --depth 1 --quiet "$REPO_URL" "$tmp" 2>/dev/null && [ -f "$tmp/$SUB/LESSONS.md" ]; then
     cp -f "$tmp/$SUB/LESSONS.md" "$DST/LESSONS.md"   # LESSONS only — never auto-pull SKILL.md from the remote (supply-chain)
+    cp -f "$tmp/$SUB/PLAYBOOK.md" "$DST/PLAYBOOK.md" 2>/dev/null || true   # data-class, like LESSONS
     src="public central repo"
   fi
 fi
@@ -87,11 +98,25 @@ else
   # --- index mode (just-in-time retrieval) ---
   echo "cogito: brain loaded from $src — $n lessons (index mode; grep for depth)."
   echo "----- ALWAYS-LOAD (critical / severe — these never defer) -----"
-  grep -E '^- .*(\[I:(9|10)\]|#critical)' "$LEDGER" || echo "  (none flagged critical)"
+  # match the [#critical] TAG, not the bare word (a lesson merely MENTIONING
+  # #critical must not always-load — caught 2026-07-03); cap the section so a
+  # runaway severe set cannot blow the per-turn budget.
+  grep -E '^- .*(\[I:(9|10)\]|\[#critical\])' "$LEDGER" \
+    | awk '{n+=length($0)+1; if(n>7000){print "  [severe set over 7000-char budget — rest deferred; run a consolidation pass]"; exit} print}' \
+    || echo "  (none flagged critical)"
   echo "----- COGITO LESSONS INDEX  (tag -> count; grep a tag in LESSONS.md for depth) -----"
   grep '^- ' "$LEDGER" | grep -oE '\[#[a-z][a-z-]*\]' | sort | uniq -c | sort -rn | sed 's/^/  /' \
     || echo "  (untagged — lessons exist but carry no tags yet)"
   echo "  $n lessons are not all printed (context-rot guard). To recall depth on a topic:"
   echo "    grep -i '<keyword>' ~/.claude/skills/cogito-protocol/LESSONS.md"
   echo "----- end COGITO INDEX -----"
+fi
+
+# --- strategy playbook (ACE): top strategies by proven usefulness ---
+PB="$DST/PLAYBOOK.md"
+if [ -f "$PB" ] && grep -q '^- \[P' "$PB" 2>/dev/null; then
+  echo "----- COGITO PLAYBOOK (top strategies — APPLY these; report use via cogito-learn.sh --bump P###:helpful) -----"
+  grep '^- \[P' "$PB" | sed -n 's/.*\[helpful:\([0-9]*\)\].*/\1 &/p' | sort -rn | head -5 | cut -d' ' -f2- \
+    | awk '{n+=length($0)+1; if(n>3000) exit; print}'
+  echo "----- end COGITO PLAYBOOK ($(grep -c '^- \[P' "$PB") strategies total; grep ~/.claude/skills/cogito-protocol/PLAYBOOK.md for more) -----"
 fi

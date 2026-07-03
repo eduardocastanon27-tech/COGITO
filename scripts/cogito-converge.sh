@@ -34,6 +34,8 @@ TO_MAIN="${COGITO_CONVERGE_TO_MAIN:-1}"   # ON: user opted in 2026-06-15 ("turn 
 BRAIN_PATHS=(
   "skills/cogito-protocol/LESSONS.md"
   "skills/cogito-protocol/LESSONS-ARCHIVE.md"
+  "skills/cogito-protocol/PLAYBOOK.md"
+  "skills/cogito-protocol/PLAYBOOK-ARCHIVE.md"
   "docs/ACTIVE-MISSION.md"
 )
 

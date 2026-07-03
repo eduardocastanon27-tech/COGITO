@@ -17,6 +17,8 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 LEDGER="$ROOT/skills/cogito-protocol/LESSONS.md"
 ARCHIVE="$ROOT/skills/cogito-protocol/LESSONS-ARCHIVE.md"
+PLAYBOOK="$ROOT/skills/cogito-protocol/PLAYBOOK.md"
+PB_ARCHIVE="$ROOT/skills/cogito-protocol/PLAYBOOK-ARCHIVE.md"
 TRIGGER="${COGITO_CONSOLIDATE_TRIGGER:-60}"      # active-count threshold
 PROBATION="${COGITO_CONSOLIDATE_PROBATION:-5}"   # most-recent N lessons exempt
 BASE="${COGITO_CONSOLIDATE_BASE:-HEAD}"          # diff base for verify
@@ -50,6 +52,17 @@ report() {
   else
     echo "Below trigger ($n < $TRIGGER) -> no pass needed yet. Mechanism is ready;"
     echo "dry-run only if exercising it. Do not force-merge a small ledger."
+  fi
+  if [ -f "$PLAYBOOK" ]; then
+    echo
+    echo "Strategy playbook:"
+    echo "  bullets: $(grep -c '^- \[P' "$PLAYBOOK" || true)"
+    echo "  demote candidates (harmful > helpful — move to PLAYBOOK-ARCHIVE at the next pass):"
+    grep '^- \[P' "$PLAYBOOK" | while IFS= read -r b; do
+      h="$(printf '%s' "$b" | sed -n 's/.*\[helpful:\([0-9]*\)\].*/\1/p')"
+      m="$(printf '%s' "$b" | sed -n 's/.*\[harmful:\([0-9]*\)\].*/\1/p')"
+      [ "${m:-0}" -gt "${h:-0}" ] && printf '    %s\n' "$b"
+    done || true
   fi
 }
 
@@ -98,6 +111,29 @@ verify() {
     echo "A consolidation must MOVE raw lines into LESSONS-ARCHIVE.md, never drop them."
     exit 1
   fi
+
+  # Playbook conservation: a bullet removed from PLAYBOOK.md must either reappear
+  # in PLAYBOOK-ARCHIVE.md (a demotion/merge) or be a COUNTER BUMP — the same
+  # bullet re-added with only [helpful:N]/[harmful:N] changed (the legit in-place
+  # delta). Compare with counters stripped.
+  local pb_removed pb_added pb_archived pb_missing stripped
+  pb_removed="$(git -C "$ROOT" diff "$BASE" -- "$PLAYBOOK" 2>/dev/null | grep '^-- ' | sed 's/^-//' || true)"
+  pb_added="$(git -C "$ROOT" diff "$BASE" -- "$PLAYBOOK" 2>/dev/null | grep '^+- ' | sed 's/^+//' || true)"
+  pb_archived="$(git -C "$ROOT" diff "$BASE" -- "$PB_ARCHIVE" 2>/dev/null | grep '^+- ' | sed 's/^+//' || true)"
+  pb_missing=""
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    grep -qxF -- "$line" <<< "$pb_archived" && continue
+    stripped="$(printf '%s' "$line" | sed 's/\[helpful:[0-9]*\]\[harmful:[0-9]*\]//')"
+    printf '%s\n' "$pb_added" | sed 's/\[helpful:[0-9]*\]\[harmful:[0-9]*\]//' | grep -qxF -- "$stripped" && continue
+    pb_missing+="$line"$'\n'
+  done <<< "$pb_removed"
+  if [ -n "${pb_missing//[$'\n']/}" ]; then
+    echo "FAIL — these playbook bullets were removed but are neither archived nor counter-bumped:"
+    printf '%s' "$pb_missing" | sed 's/^/    /'
+    exit 1
+  fi
+
   echo "PASS — every removed lesson is preserved in the archive."
   echo "Now read 'git diff' for over-merge (a rule that swallowed a distinct cause), then commit."
 }

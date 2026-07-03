@@ -8,36 +8,40 @@
 #
 # Council Step B rule — "append is cheap + automatic; contradicting canon is expensive
 # + gated." AUTO-MERGE only when ALL hold:
-#   - the ONLY changed file is the ledger (skills/cogito-protocol/LESSONS.md)
-#   - it ADDS lines and REMOVES none (append-only; a correction/supersede removes or
-#     edits a line -> the diff shows a deletion -> HOLD)
-#   - every added non-blank line is a lesson (^- ... -> ... -> ...), and none carry
-#     'supersedes:' (an overturn of canon)
-#   - at least one lesson is added, and no more than the size cap
+#   - the ONLY changed files are the ledger (skills/cogito-protocol/LESSONS.md)
+#     and/or the playbook (skills/cogito-protocol/PLAYBOOK.md)
+#   - it ADDS lines and REMOVES none (append-only; a correction/supersede/counter
+#     bump removes or edits a line -> the diff shows a deletion -> HOLD; local
+#     counter bumps ride converge instead, which is the intended path)
+#   - every added non-blank ledger line is a lesson (^- ... -> ... -> ...) with no
+#     'supersedes:'; every added playbook line is a strategy bullet
+#     (^- [P###][#tag...][helpful:N][harmful:N] ...)
+#   - at least one line is added, and no more than the size cap
 # Anything else -> "HOLD: <reason>" (the PR is left open for the owner to merge by hand).
 #
 # Output: a single line beginning with MERGE or HOLD. Exit is always 0 (the wrapper
 # branches on the word; a crashed checker must never be read as "safe to merge").
 set -uo pipefail
 LEDGER="${COGITO_LEDGER_PATH:-skills/cogito-protocol/LESSONS.md}"
+PLAYBOOK="${COGITO_PLAYBOOK_PATH:-skills/cogito-protocol/PLAYBOOK.md}"
 MAX_ADDED="${COGITO_GATE_MAX_ADDED:-25}"
 
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 cat > "$WORK/gate.py" <<'PY'
 import sys, re
-ledger, maxn = sys.argv[1], int(sys.argv[2])
-files = set(); added = []; removed = 0
+ledger, playbook, maxn = sys.argv[1], sys.argv[2], int(sys.argv[3])
+files = set(); added = {}; removed = 0; cur = None
 for ln in sys.stdin.read().splitlines():
     if ln.startswith('+++ b/'):
         p = ln[6:].strip()
-        if p != '/dev/null': files.add(p)
+        if p != '/dev/null': files.add(p); cur = p
     elif ln.startswith('--- a/'):
         p = ln[6:].strip()
         if p != '/dev/null': files.add(p)
     elif ln.startswith('+++ ') or ln.startswith('--- ') or ln.startswith('@@') or ln.startswith('diff '):
         continue
     elif ln.startswith('+'):
-        added.append(ln[1:])
+        added.setdefault(cur, []).append(ln[1:])
     elif ln.startswith('-'):
         removed += 1
 
@@ -46,24 +50,31 @@ def out(s):
 
 if not files:
     out("HOLD: no changed files found in the diff")
-if files != {ledger}:
-    out("HOLD: changes files other than the ledger (" + ", ".join(sorted(files)) + ")")
+if not files <= {ledger, playbook}:
+    out("HOLD: changes files other than the ledger/playbook (" + ", ".join(sorted(files - {ledger, playbook})) + ")")
 if removed > 0:
-    out("HOLD: removes or edits %d existing line(s) — corrections/retirements need your review" % removed)
-lessons = [a for a in added if a.strip()]
-if not lessons:
-    out("HOLD: no lesson lines added")
-if len(lessons) > maxn:
-    out("HOLD: adds %d lines (cap is %d) — review a batch this large" % (len(lessons), maxn))
-for a in lessons:
+    out("HOLD: removes or edits %d existing line(s) — corrections/retirements/counter bumps need your review" % removed)
+n_lessons = n_bullets = 0
+for a in added.get(ledger, []):
+    if not a.strip(): continue
     if 'supersedes:' in a:
         out("HOLD: a line carries 'supersedes:' — overturning canon needs your one-tap")
     if not re.match(r'^- .*->.*->', a):
-        out("HOLD: added a non-lesson line: " + a.strip()[:70])
-out("MERGE: %d lesson(s) appended — append-only, ledger-only, format-valid" % len(lessons))
+        out("HOLD: added a non-lesson line to the ledger: " + a.strip()[:70])
+    n_lessons += 1
+for a in added.get(playbook, []):
+    if not a.strip(): continue
+    if not re.match(r'^- \[P[0-9]{3}\](\[#[a-z][a-z-]*\])+\[helpful:[0-9]+\]\[harmful:[0-9]+\] ', a):
+        out("HOLD: added a malformed playbook bullet: " + a.strip()[:70])
+    n_bullets += 1
+if n_lessons + n_bullets == 0:
+    out("HOLD: no lesson/strategy lines added")
+if n_lessons + n_bullets > maxn:
+    out("HOLD: adds %d lines (cap is %d) — review a batch this large" % (n_lessons + n_bullets, maxn))
+out("MERGE: %d lesson(s) + %d strategy bullet(s) appended — append-only, brain-files-only, format-valid" % (n_lessons, n_bullets))
 PY
 
-decide() { python3 "$WORK/gate.py" "$LEDGER" "$MAX_ADDED"; }
+decide() { python3 "$WORK/gate.py" "$LEDGER" "$PLAYBOOK" "$MAX_ADDED"; }
 
 # ---- selftest: the gate contract as runnable assertions ---------------------------
 selftest() {
@@ -145,6 +156,37 @@ diff --git a/README.md b/README.md
 +++ b/$L
 @@ -90,1 +90,1 @@
 +   " "only blank added, no lesson"
+
+  local P="skills/cogito-protocol/PLAYBOOK.md"
+  check MERGE "diff --git a/$P b/$P
+--- a/$P
++++ b/$P
+@@ -30,1 +30,2 @@
++- [P013][#verify][helpful:0][harmful:0] new strategy that worked {via:test}" "one appended playbook bullet"
+
+  check MERGE "diff --git a/$L b/$L
+--- a/$L
++++ b/$L
+@@ -90,1 +90,2 @@
++- [#a] s -> c -> r
+diff --git a/$P b/$P
+--- a/$P
++++ b/$P
+@@ -30,1 +30,2 @@
++- [P014][#process][helpful:0][harmful:0] another strategy {via:test}" "ledger + playbook appends together"
+
+  check HOLD "diff --git a/$P b/$P
+--- a/$P
++++ b/$P
+@@ -30,2 +30,2 @@
+-- [P001][#verify][helpful:0][harmful:0] strategy {via:seed}
++- [P001][#verify][helpful:1][harmful:0] strategy {via:seed}" "playbook counter bump (edit) from a PR"
+
+  check HOLD "diff --git a/$P b/$P
+--- a/$P
++++ b/$P
+@@ -30,1 +30,2 @@
++- [P15][#verify] missing counters" "malformed playbook bullet"
 
   echo
   [ "$fails" -eq 0 ] && echo "selftest: ALL PASS" || { echo "selftest: $fails FAILED"; return 1; }
