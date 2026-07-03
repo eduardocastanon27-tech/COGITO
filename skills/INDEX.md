@@ -47,12 +47,15 @@ definitions — so verify a freshly-written agent on its next session, or proxy 
 through `general-purpose` meanwhile.)
 
 ## Hooks (the automatic layer — what *runs*, vs. skills which *inform*)
-Wired in `.claude/settings.json` (and shipped in the plugin's `hooks/hooks.json`):
+Wired in `.claude/settings.json` AND in the plugin's `hooks/hooks.json` (kept at
+parity — a packaged install must not be a lesser product than the repo):
 
 | Hook | Event | What it does |
 |---|---|---|
-| `cogito-session-start.sh` + `cogito-sync.sh` | SessionStart | load the protocol + the lessons ledger (index-then-load above ~80) + the active mission + the most-overdue learning recap. |
+| `cogito-session-start.sh` + `cogito-sync.sh` | SessionStart | load the protocol + the lessons ledger (index-then-load above the threshold — `COGITO_LOAD_THRESHOLD`, default 20) + the active mission (capped 6,000 chars) + the most-overdue learning recap. |
 | `scripts/cogito-guard.sh` | PreToolUse (Bash) | block known-bad commands at the boundary — self-matching `pkill -f`, `rm -rf` on a root path. **Fail-open**: only a positive match denies. |
+| `scripts/cogito-recall.sh` | UserPromptSubmit | surface the 1–3 deferred lessons most relevant to THIS prompt (keyword overlap; no embeddings). |
+| `scripts/cogito-converge.sh` | Stop | auto-commit brain files and push them to the canonical `main` (FF-only, brain paths only). |
 
 ## Adding a skill — the creation gate
 A skill is procedural memory **only after it has worked in a real session**

@@ -15,6 +15,20 @@
           { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/cogito-guard.sh\"", "timeout": 10 }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/cogito-recall.sh\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/cogito-converge.sh\"", "timeout": 30 }
+        ]
+      }
     ]
   }
 }

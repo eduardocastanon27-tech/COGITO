@@ -5,9 +5,10 @@ description: Ledger maintenance for Cogito's lessons — keep the always-loaded 
 
 # Cogito — Ledger Maintenance: Consolidate (`/consolidate`) + Decay
 
-The lessons ledger loads in full at every session start (the SessionStart hook
-greps `^- ` from `LESSONS.md`). That is cheap while the list is short and a
-liability once it is long — "context rot" sets in and the signal dilutes. A
+The lessons ledger loads at every session start — in full while small, and in
+index mode above the threshold (`COGITO_LOAD_THRESHOLD`, default 20: the
+`#critical`/`[I:≥9]` set + a tag index, the rest deferred to grep). Even in
+index mode a bloated ledger dilutes the signal — "context rot". A
 consolidation pass keeps the always-loaded set small **without losing detail**:
 it compiles clusters of related raw lessons into a few higher-tier rules and
 parks the raw lines in an archive the loader does not read.
@@ -63,7 +64,7 @@ not.
 
 6. **Review the diff, then commit.** `git diff` is the real validation layer for
    over-merge: read it as a stranger would and confirm no causal detail was
-   flattened. Commit faceless (`Cogito <cogito@users.noreply.github.com>`) with a
+   flattened. Commit faceless (`Cogito <291881939+COGITO-SUM-cloude@users.noreply.github.com>`) with a
    message naming what merged into what and the before/after count.
 
 ## Decay — archive cold, low-value lessons (helper: `scripts/cogito-decay.sh`)
@@ -75,9 +76,8 @@ in the always-loaded set.
 The rule (ACT-R activation ≈ recency × importance, with refresh-on-recall): a
 lesson is an archive candidate only when **all** hold —
 - it is **explicitly low-importance** (`[I:N]`, N ≤ 3). *Unscored lessons are
-  kept* — never assume a lesson is low-value just because no one scored it. (This
-  is the safety floor: 42 of the current 45 lessons are unscored and must not
-  decay by default.)
+  kept* — never assume a lesson is low-value just because no one scored it; the
+  safety floor is that unscored lines never decay by default.
 - it is **cold**: its recency — the latest `[seen:]`/`[d:]` stamp in the line,
   else the line's git-blame date — is older than ~90 days.
 - it is **off probation** (not in the most-recent ~5) and **not** `#critical` /
