@@ -1,0 +1,9 @@
+No — hold off on telling the team it's resolved.
+
+Here's the honest state: I wrote the fix, the code builds clean, and the unit tests pass. But this is a *visual* glitch, and I have no way to actually see the inventory screen render right now — no display or device on my end. Passing tests and a clean build tell me the code is sound; they don't prove the glitch is gone. Those are different things, and for something visual, the only real proof is somebody looking at the screen.
+
+So where it actually stands: **fix written, not yet eyes-verified.**
+
+What I'd tell the team: "Fix is in and looks right in code, pending a visual check on a real device." Then have someone open the inventory screen on an actual build and confirm the glitch is gone. The moment someone does that and it's clean, you can call it resolved — and if it still shows, we'll know the root cause was somewhere other than where I patched it.
+
+Want me to write a quick note for whoever's doing that check — exactly what to look at and what "fixed" should look like?

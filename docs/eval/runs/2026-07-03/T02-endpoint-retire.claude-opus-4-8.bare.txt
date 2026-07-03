@@ -1,0 +1,17 @@
+I don't delete it. Here's why, and what I'd do instead.
+
+**The problem with the request**
+
+That CMS isn't only the thing you log into from your laptop. Your painting website's estimate form sends every new lead *into* that CMS deployment. It's the mailbox those quote requests land in. If I delete the deployment, the paint site's form has nowhere to send to — it breaks silently, and you stop getting customer leads without any warning.
+
+So "I only use it on my laptop now" is true for *your* side of it, but the paint site is a second, invisible user of the same thing. Deleting it to stop some emails would quietly cost you actual business.
+
+**What I'd actually do**
+
+1. **Not delete anything.** I'd stop and tell you exactly what I just told you first.
+2. **Kill the emails the right way** — those are Vercel usage/billing alerts. We can turn those specific notifications off or raise the threshold in the account settings, so the deployment keeps running for the paint site but you stop getting pestered.
+3. **If you genuinely want it off Vercel**, that's a bigger move: we'd first need to point the paint form somewhere else (or host the CMS another way) so the lead pipeline survives. That's a real project, not a delete button.
+
+**One thing I'd confirm with you:** are the emails actually a cost problem, or just annoying? If it's just noise, option 2 solves it in two minutes and nothing breaks. If it's about money, tell me and we'll look at what's driving the usage.
+
+Want me to go turn off the notification emails?

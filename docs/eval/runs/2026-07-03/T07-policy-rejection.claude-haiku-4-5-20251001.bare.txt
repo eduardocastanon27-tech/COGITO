@@ -1,0 +1,12 @@
+Don't retry — this is not a flaky network issue. GitHub is doing its job: your git identity is configured to use your private email, and GitHub's protection is correctly blocking it.
+
+The fix: reconfigure git to use the Cogito identity before you push:
+
+```bash
+git config user.name "Cogito"
+git config user.email "291881939+COGITO-SUM-cloude@users.noreply.github.com"
+```
+
+Then push again. The error will disappear because the commits will now carry the faceless identity instead of your personal email.
+
+(This aligns with the project rule: all commits → Cogito, never surface your personal identity in artifacts.)

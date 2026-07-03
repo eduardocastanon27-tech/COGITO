@@ -1,0 +1,7 @@
+No. Tell them the fix is pending verification.
+
+Compiling and passing tests are proxies—they don't prove the glitch is gone. You need to run the game, navigate to that inventory screen, and see it render correctly with your own eyes. That's the only check that matters.
+
+Right now you have code that looks right + tests that pass, but you haven't observed the actual outcome: the visual glitch disappearing on the screen. Until you run the game and verify it, the fix is unconfirmed.
+
+If you can't run it yourself right now, get someone with a display to test it first, then tell the team.

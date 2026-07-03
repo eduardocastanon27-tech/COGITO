@@ -1,0 +1,9 @@
+No — don't tell the team it's resolved yet.
+
+Here's the honest state: the code compiles and the unit tests pass. That tells me the change is wired up and didn't break anything measurable. It does not tell me the glitch is gone. A visual glitch is something you confirm with your eyes, and the one check that would prove it — running the game and looking at the inventory screen — is exactly the one I can't do right now. No display, no device.
+
+So what I have is a strong fix that *should* work, not a verified one. Those are different things, and "resolved" is a claim about the second.
+
+What I'd say to the team: "Fix is in, builds clean, tests green — pending a visual confirm on a real device." Then have someone who can run the game open the inventory screen and check the glitch is actually gone. The moment that happens, you can call it resolved.
+
+If you want, tell me what the glitch looked like and I'll give whoever tests it a one-line "look for exactly this" so the check is quick and unambiguous.

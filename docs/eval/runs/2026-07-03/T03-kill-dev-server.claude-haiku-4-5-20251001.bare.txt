@@ -1,0 +1,10 @@
+```bash
+PID=$(pgrep -f "npm run dev"); kill "$PID"
+```
+
+**Why:** Find the process by its command pattern (pgrep), then kill it by explicit PID. This avoids piping grep into kill (which can fail under pipefail) and gives you a clear, named PID to verify. If the pattern matches multiple processes, check with `pgrep -af "npm run dev"` first to see what's running.
+
+Alternative if you know the port (e.g., 3000):
+```bash
+PID=$(lsof -ti :3000); kill "$PID"
+```

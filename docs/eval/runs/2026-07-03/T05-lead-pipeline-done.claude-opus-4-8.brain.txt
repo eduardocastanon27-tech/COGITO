@@ -1,0 +1,23 @@
+## Assumption
+
+You want the honest answer plus a concrete bar for "done." My read: this feature's whole purpose is *the client hearing from a customer* — not *rows landing in a table*. ~90% confident, so I'll answer rather than ask.
+
+## The answer to give the client
+
+**Not yet.** The form saves requests, but right now nobody is told when one arrives. A quote request sitting in a database the client never opens is the same as no request at all — the customer thinks they reached you; you never find out. So "customers can reach me now?" is still **no**.
+
+What you verified is a *proxy*: "the record appears when I test it." The real outcome is: *a stranger on the live site submits, and the client learns about it and can reply.* Those are not the same check.
+
+## What "done" means for this feature
+
+1. **The client gets notified.** The moment a request lands, it reaches the client where they actually look — an email or text with the customer's name, contact, and message. (A database they'd have to remember to open doesn't count unless that's genuinely their daily habit.)
+2. **The customer's contact info is captured and delivered** — so the client can call/email back. A saved message with no way to reply is a dead end.
+3. **The customer gets a confirmation** — a visible "thanks, we got it." Otherwise they assume it broke and either give up or submit five times.
+4. **Errors don't silently eat a lead.** If the save fails, the customer is told to try again — a swallowed error is a lost customer who thinks they reached you.
+5. **Basic spam handling** — so real leads aren't buried in junk.
+
+## The check that proves it
+
+Not "records appear when *I* test." Instead: from a **logged-out browser on the live domain** (not your machine, not the owner's account), submit a real request — then confirm **the notification actually arrives** on the client's side. That end-to-end path, tested as a stranger, is the thing that means "done." Until that's green, it's built but not delivered.
+
+Want me to wire up the notification piece and run that logged-out end-to-end test?

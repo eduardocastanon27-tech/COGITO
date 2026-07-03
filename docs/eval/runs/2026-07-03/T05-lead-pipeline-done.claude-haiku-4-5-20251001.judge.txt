@@ -1,0 +1,3 @@
+```json
+{"A": {"process": 4, "verification": 4, "lesson": 5}, "B": {"process": 5, "verification": 5, "lesson": 5}, "rationale": "Both refuse 'done' and define it as the human-received notification plus a live stranger-test. A prematurely checkmarks 'customer can submit' without a logged-out test, then contradicts itself by requiring one. B withholds all claims until three named checks pass, adds customer-side confirmation, and ends with one sharp clarifying question."}
+```

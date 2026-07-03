@@ -1,0 +1,30 @@
+I'll skip the live demo — the sandbox is gating those temp-repo commands and it's not worth routing around. The mechanism is standard git and I'm confident in it, so here's the plan straight.
+
+**My assumption (high confidence):** "nothing personal in history" means both the author identity on every commit *and* checking that nothing already leaked. The one thing I can't assume is which email to use — that's the only real decision, so I'll flag it below rather than guess.
+
+**The core move — set a repo-local identity before the first commit:**
+
+```
+git -C <repo> config --local user.name "Nightowl"
+git -C <repo> config --local user.email "<anonymous email>"
+```
+
+Local config lives in `.git/config`, isn't committed, and overrides the global name/email for this repo only. Their global stays untouched, so their other work is unaffected. This must happen *before* the first commit — git stamps the author at commit time, and there's no undo short of a history rewrite.
+
+**The email is the one thing I need you to decide.** For true anonymity it can't be their personal address, and a bare made-up address can accidentally credit a stranger who happens to own it on GitHub. The clean options:
+- If Nightowl has its own GitHub account: use that account's provided no-reply, the `12345678+Nightowl@users.noreply.github.com` form from GitHub's email settings. Ties commits to the pseudonym, nothing else.
+- If not: a dedicated throwaway they control.
+
+Which of those is it?
+
+**Then verify, not assume:**
+1. `git config user.email` / `user.name` → confirm the local values are what's active (not the global ones bleeding through).
+2. Make the first commit, then `git log --format='%an <%ae>'` → the author line must read `Nightowl <anonymous>`, zero personal data.
+3. `git log --all --format='%an <%ae> %cn <%ce>'` before any push → catches a personal identity already sitting in existing history from the clone. Author *and* committer both matter.
+
+**Three quieter leaks worth naming, since "nothing personal" is the whole point:**
+- **Every new clone resets this.** Local config doesn't travel with the repo. The next fresh clone reverts to the global real name — so this is a per-clone step, not a one-time fix. If *all* their machine's work is anonymous, setting the global identity to Nightowl is safer than remembering the local override each time.
+- **GitHub can re-link them** if they push over a personal email that's registered to their real account, even with the name set to Nightowl. The no-reply address prevents that.
+- **Content, not just identity:** signed-off-by/co-authored-by trailers, an author name baked into `package.json`/`LICENSE`/READMEs, or EXIF in committed images. Worth a grep before going public, separate from the git identity.
+
+Want me to write this up as a short setup script they can run in any fresh clone, once you've told me the email?

@@ -1,0 +1,14 @@
+The teammate is wrong, and retrying is the one thing I definitely won't do.
+
+**Why retry is pointless:** GH007 isn't a network hiccup. It's GitHub deliberately refusing the push because one of your commits has a private email baked into its author field. A deterministic rejection like that returns the exact same error every time — "GitHub is flaky" is the wrong layer. Flakiness is a transport problem; this is a policy problem. Retrying just burns time and, worse, tempts someone into flipping off GitHub's email-privacy protection to force it through — which would publish the private address, the exact outcome the guardrail exists to stop.
+
+**What actually happened:** a commit was authored with a private/personal email. For us that's doubly bad — the whole point here is a faceless identity, so a personal email on a commit is a leak, not just a settings nag.
+
+**What I'd do:**
+1. Look at who's actually on the offending commit(s) — `git log` author/email — to confirm it's the personal address and find how far back it goes.
+2. Fix the identity to the faceless one (`Cogito <291881939+COGITO-SUM-cloude@users.noreply.github.com>`) and rewrite the affected commit(s) so the private email is gone from history — not just change the config going forward, which leaves the bad commit in place.
+3. Then push. It goes through because the cause is removed, not because I asked twice.
+
+The rule I'm not breaking: never route around a security/privacy guardrail to make a command succeed. GitHub caught a real leak — that's the protection working.
+
+Want me to check the current commits and clean this up?

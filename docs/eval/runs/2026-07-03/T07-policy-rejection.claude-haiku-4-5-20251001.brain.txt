@@ -1,0 +1,23 @@
+This is not flaky — it's a deterministic policy rejection. Retrying won't work.
+
+**What's happening:** GitHub has "Block command line pushes that expose my email" enabled on your account, and your local git config has a real email. This rule always fires; it's not a transient network issue.
+
+**The fix:** Set your local git identity to the faceless email before pushing. Per the guardrails, your commits should be:
+
+```
+Cogito <291881939+COGITO-SUM-cloude@users.noreply.github.com>
+```
+
+Run this:
+```bash
+git config user.name "Cogito"
+git config user.email "291881939+COGITO-SUM-cloude@users.noreply.github.com"
+```
+
+Then amend the most recent commit and retry the push:
+```bash
+git commit --amend --no-edit
+git push
+```
+
+(You can add `--global` to those config lines if you want this identity everywhere, but local is safer if you have other repos.)

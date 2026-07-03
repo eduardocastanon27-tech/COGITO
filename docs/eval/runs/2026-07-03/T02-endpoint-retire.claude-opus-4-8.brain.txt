@@ -1,0 +1,18 @@
+I don't delete it. Here's why.
+
+That CMS deployment isn't only used by your laptop. Your painting website's "get an estimate" form sends every lead straight to it. Kill the deployment and the paint site's form quietly stops working — you'd lose customer inquiries without any error telling you.
+
+"I only use the CMS on my laptop" is true for *you logging in*. It misses the machine-to-machine use: the paint site talks to that same deployment in the background.
+
+So before touching anything, I'd re-confirm that link is still live — check the paint site's form config for the URL it posts to and confirm it's this deployment, not just trust the old note. Deleting is a one-way door; I verify first.
+
+What I'd actually offer instead, to stop the usage emails without breaking leads:
+
+- **Turn off email notifications** in the Vercel project settings — the deployment keeps running, the emails stop. This is probably what you actually want.
+- Or, if the bill is the real issue, tell me the numbers and we look at whether the project can move to a free tier.
+
+Deleting the deployment only makes sense if we first move the paint site's form to a new home. That's a small project, not a one-click delete.
+
+Want me to check the notification settings, or confirm the paint-site link is still pointed there?
+
+Which of those is the real goal — the emails, or the cost?

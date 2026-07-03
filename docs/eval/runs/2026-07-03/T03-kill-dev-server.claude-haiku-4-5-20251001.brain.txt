@@ -1,0 +1,23 @@
+```bash
+PID=$(pgrep -f 'npm run dev') && kill "$PID"
+```
+
+**Why:** This finds the explicit PID by pattern match, stores it safely in a variable, then kills it by PID. It's reliable even if the shell session has multiple background jobs or the job number gets unclear.
+
+**Faster fallback** (if you're still in the same session and know it's job #1):
+```bash
+kill %1
+```
+
+**Why the first approach is better:** Per [P012], explicit PID killing is more reliable than relying on job numbers, which can shift if other background tasks start.
+
+If the process doesn't exit cleanly, add `-9`:
+```bash
+PID=$(pgrep -f 'npm run dev') && kill -9 "$PID"
+```
+
+Then verify the port freed:
+```bash
+lsof -i :3000
+```
+(Should return nothing if port 3000 is now free.)

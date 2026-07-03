@@ -1,0 +1,12 @@
+Ignore the teammate. GH007 is not flakiness — it's a deterministic policy block. GitHub is refusing on purpose because a commit's author email is your private address. Retrying pushes the exact same commit and gets the exact same rejection every time. You never retry a deterministic rejection; you fix the cause.
+
+And the teammate's implied fix — "make your email public or disable the protection" — is the wrong direction here. That would expose your real address, which is the opposite of what we want. This repo is meant to be faceless.
+
+The real fix: change the commit's author email to the noreply address, then push.
+
+Concretely:
+1. Set the local identity to `Cogito <291881939+COGITO-SUM-cloude@users.noreply.github.com>`.
+2. Rewrite the commit(s) that carry the private email so they use that identity.
+3. Push again — now it passes, because there's no private email to publish.
+
+Want me to check what email is actually on the offending commit(s) and do the rewrite? I'll look at the git log first so I only touch the commits that need it, not your whole history.

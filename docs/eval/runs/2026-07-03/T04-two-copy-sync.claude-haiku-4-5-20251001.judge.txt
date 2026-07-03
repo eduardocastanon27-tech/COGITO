@@ -1,0 +1,3 @@
+```json
+{"A": {"process": 4, "verification": 4, "lesson": 4}, "B": {"process": 5, "verification": 4, "lesson": 5}, "rationale": "Both diff bidirectionally, merge to superset, write to both, and gate success on a final cmp. A resolves conflicting sections by trusting 'probably newer' — acting on the unverified guess the scar warns against. B keeps everything from either copy and defers judgment to inspection, and states the anti-overwrite principle with its data-loss rationale."}
+```

@@ -1,0 +1,25 @@
+The port won't free up reliably if you just `kill %1`, because `npm run dev` forks a child (the actual Node server) that keeps holding the port after the npm wrapper dies. So target whatever is actually listening on the port.
+
+Next.js defaults to port 3000, so:
+
+```bash
+kill $(lsof -ti tcp:3000)
+```
+
+If it doesn't die (some dev servers ignore a plain TERM), force it:
+
+```bash
+kill -9 $(lsof -ti tcp:3000)
+```
+
+Swap `3000` for your real port if you changed it.
+
+**Why this and not `kill %1`:** `lsof -ti tcp:3000` asks the OS "who is listening on this port" and returns that exact PID — so you kill the real server (and any children still bound), which is what frees the port. `kill %1` only kills the backgrounded npm wrapper and can leave the child server running on the port.
+
+If you'd rather kill the job and its children together, kill the whole process group instead:
+
+```bash
+kill -- -$(jobs -p %1)
+```
+
+That signals every process in the job, not just the wrapper — but the `lsof` approach is the surest way to guarantee the port is actually released.

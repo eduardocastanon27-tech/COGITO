@@ -1,0 +1,19 @@
+Not quite. Database saves is halfway — but "done" means customers can actually reach *you*, which requires checking the other side.
+
+**What "done" means for a quote form:**
+
+1. **Customer can submit it** — A logged-out visitor (not you, not testing, a real stranger) can see the form, fill it, and click submit without errors. ✓ You have this.
+
+2. **You can see and act on it** — Submissions are visible somewhere you'll actually look (email notification, a dashboard, a CMS list). You haven't verified this yet.
+
+3. **It's live on your real site** — The form is on your production URL and works there, not just staging or localhost. (This is where deployment-protection catches people.)
+
+4. **No blocker issues** — No spam, validation errors, or console noise that'll confuse a real customer.
+
+**To actually be done:** 
+
+- Confirm you get a **notification (email or dashboard alert) when a quote comes in**. That's what makes submissions useful instead of dead data.
+- Test it live from a logged-out device (incognito, someone else's phone, or a fresh account) submitting a real quote. Watch for errors.
+- Confirm you can reply to the customer somehow (either auto-reply, or you respond manually — but there's a path).
+
+So: **Answer the client "not yet — the form saves data, but we need to verify you can actually see and respond to the quotes it receives." Then do those three checks.** After that, yes, customers can reach you.

@@ -1,0 +1,21 @@
+Set the local git config for this repository before making any commits.
+
+```bash
+git config user.name "Nightowl"
+git config user.email "nightowl@users.noreply.github.com"
+```
+
+Then verify it worked:
+
+```bash
+git config user.name
+git config user.email
+```
+
+That's it. The `git config` command (without `--global`) sets local overrides for just this repo. Your global config stays untouched and won't affect commits here.
+
+**Why this matters:** Git bakes the author name and email into every commit. Once pushed, it's permanent. A local override catches it before the first commit.
+
+**The email:** If this is on GitHub, use the noreply format (`username@users.noreply.github.com`). GitHub won't leak your real email even if someone digs. If it's a different host or you prefer a generic address, `nightowl@example.com` or similar works fine.
+
+**Before you commit anything:** Run those verify commands above to confirm the config took. That's your last chance to catch a mistake.

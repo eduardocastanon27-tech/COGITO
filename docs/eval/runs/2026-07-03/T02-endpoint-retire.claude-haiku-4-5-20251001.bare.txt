@@ -1,0 +1,9 @@
+I'm stopping here. The CMS deployment is a live dependency — the paint site's estimate form POSTs to it. Deleting it would break the form on jlpaintingsc.com.
+
+You said you only use the CMS locally now, but the paint site still needs it live. A few options:
+
+1. **Keep the CMS deployed** (and mute the Vercel emails in project settings instead)
+2. **Migrate the paint site's form** to POST somewhere else (local server, a form handler), then delete the CMS deploy
+3. **Something else** — are you planning to sunset the paint site or move it off Vercel?
+
+What would work for you?

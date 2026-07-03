@@ -9,3 +9,4 @@ Paint | https://paint-jfl-lol-projects.vercel.app | private
 The brain (repo) | https://github.com/cogito-sum-cloude/cogito | public
 # CMS (idk-whatimdoing): add its production URL here once confirmed, e.g.
 # CMS — this dashboard | https://<your-cms>.vercel.app | public
+Hermes gateway | http://127.0.0.1:3000/health | private

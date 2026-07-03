@@ -1,0 +1,36 @@
+Here are the exact steps:
+
+1. **Diff both directions to see what's different:**
+   ```bash
+   diff ~/.config/app/notes.md ~/project/notes.md
+   ```
+   Then reverse it:
+   ```bash
+   diff ~/project/notes.md ~/.config/app/notes.md
+   ```
+   This shows you what's unique in each file and where they conflict.
+
+2. **Read both files to hand-merge them:**
+   ```bash
+   cat ~/.config/app/notes.md
+   cat ~/project/notes.md
+   ```
+   Combine them into a single superset — take all unique lines from both files. Where there's conflicting content (the same section written differently), favor the project version since you said it's probably newer.
+
+3. **Write the merged result to BOTH locations:**
+   ```bash
+   cat > ~/.config/app/notes.md << 'EOF'
+   <merged content here>
+   EOF
+   
+   cat > ~/project/notes.md << 'EOF'
+   <merged content here>
+   EOF
+   ```
+
+4. **Verify both are now identical:**
+   ```bash
+   cmp ~/.config/app/notes.md ~/project/notes.md && echo "✓ Files match"
+   ```
+
+The key: never `cp` one over the other (you'd lose the newer content from project). Always merge to the superset, then write to both.

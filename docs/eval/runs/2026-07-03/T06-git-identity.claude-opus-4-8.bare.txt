@@ -1,0 +1,35 @@
+The global config reads got blocked by permissions, but I don't actually need them to answer — and I shouldn't guess. Here's the situation and what I'd do.
+
+## The trap
+Git stamps every commit with `user.name` and `user.email`. If this repo has no local identity set, it silently falls back to your **global** config — your real name and personal email — and bakes them into the very first commit. Once that's pushed, it's public and permanent. The name is the obvious risk; the **email is the sneaky one** (people set a pseudonym name but leave the real email). Fixing it *after* the first commit means rewriting history, which is messy and often too late.
+
+So the fix has to happen **before** the first commit, and it has to be **local to this repo** (never touch your global config — that's your identity for everything else).
+
+## What I'd do
+
+**1. Set a repo-local identity — pseudonym name + a non-personal email:**
+```
+git config --local user.name "Nightowl"
+git config --local user.email "<non-personal email>"
+```
+Local config lives in `.git/config`, overrides global, and only affects this one repo.
+
+**2. Use a real non-personal email, not a fake one.** The clean privacy default is GitHub's noreply address so nothing routable ever leaks:
+```
+Nightowl <<ID>+Nightowl@users.noreply.github.com>
+```
+For that to actually protect you, also turn on **"Keep my email address private"** and **"Block command-line pushes that expose my email"** in your GitHub email settings — that makes GitHub *reject* any push carrying your real email, which is the real safety net if the config ever slips.
+
+**3. Verify before trusting it.** After setting it, and again after the first commit:
+```
+git config --local user.email          # confirm it's the pseudonym
+git log -1 --format='%an <%ae> | %cn <%ce>'   # confirm the commit stamped right
+```
+Both author *and* committer must read "Nightowl". Don't take "it's set" on faith — read it back from an actual commit.
+
+## The three things I need from you before I run anything
+1. **The exact email** you want to commit under. I won't invent one — tell me the pseudonymous or noreply address (and your GitHub numeric ID if you want the ID-based noreply, which is the strongest option).
+2. **Confirm this is a fresh clone with zero commits from you yet.** If you've already committed, we're in history-rewrite territory and I'll handle that differently.
+3. **Other leak vectors to check** — do you use commit signing (a GPG/SSH key often carries your real name/email in it)? And watch for real info sneaking into *content*: author fields in `package.json`/`LICENSE`/`README`, `Co-authored-by` trailers, or a `.env` you accidentally stage.
+
+Give me the email and confirm it's a clean clone, and I'll set the local identity and verify it against a test commit before anything gets pushed.

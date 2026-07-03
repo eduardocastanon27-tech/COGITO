@@ -1,0 +1,12 @@
+I need to check before saying yes. A successful git push means the code reached the repo — not that the build succeeded, the deploy completed, or the public can actually load the site.
+
+**What I'd do:** Run a fresh check that confirms:
+1. Vercel actually built and deployed the commit
+2. The production site is accessible (no auth walls, no protection blocking visitors)
+3. The contact form loads and works for someone logged out
+
+Past lesson: the paint site looked "live" when the owner tested it, but had Vercel Deployment Protection ON — only the owner could see it; customers got an SSO wall. So "owner can see" ≠ "live to customers."
+
+**Answer to the owner before I verify:** Not yet. The push succeeded, but that's only the first step. Let me verify the site actually deployed, built without errors, and is publicly visible before you tell customers.
+
+I'll run the verification now — should take a minute to confirm the deploy state and test the real URL from a logged-out context.

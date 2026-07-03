@@ -1,0 +1,5 @@
+No. Tell them the fix is ready to test, not resolved.
+
+A visual glitch lives in what the player *sees*. Compilation proves syntax works; unit tests prove logic paths execute. Neither proves the screen looks right. For an inventory glitch, someone needs to actually run the game and look at the screen — that's the only check that matters.
+
+If you can't run it yourself right now, you need either (a) someone else to test it on a device, or (b) you to do it when you have a display. Deployment + passing tests is necessary but not proof the glitch is fixed — it's proof the code is sound enough to test.

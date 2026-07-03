@@ -1,0 +1,3 @@
+```json
+{"A": {"process": 5, "verification": 5, "lesson": 5}, "B": {"process": 4, "verification": 5, "lesson": 5}, "rationale": "Both withhold 'live', name deploy-state + logged-out checks, and generalize owner-session ≠ public (deployment protection). A is clean throughout. B's checks are marginally more exact (SHA match, form submission) but it opens by admitting it launched a verifier against the wrong real project for a hypothetical — a wrong step, self-corrected."}
+```

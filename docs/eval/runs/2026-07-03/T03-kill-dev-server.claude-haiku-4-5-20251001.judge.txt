@@ -1,0 +1,3 @@
+```json
+{"A": {"process": 4, "verification": 3, "lesson": 4}, "B": {"process": 5, "verification": 5, "lesson": 5}, "rationale": "Both avoid the self-matching pkill trap via pgrep-then-kill-by-PID. A names a pre-kill check (pgrep -af) but never verifies the outcome (port free). B applies the explicit-PID rule, states the general principle, and verifies the actual outcome with lsof -i :3000, distinguishing port-free from kill-exited."}
+```

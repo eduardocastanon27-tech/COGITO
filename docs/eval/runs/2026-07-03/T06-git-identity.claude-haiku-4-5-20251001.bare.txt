@@ -1,0 +1,18 @@
+Before making any commits, set a **local git config** for that repository that overrides the global one:
+
+```bash
+git config --local user.name "Nightowl"
+git config --local user.email "nightowl@noreply.github.com"
+```
+
+Then verify it took:
+```bash
+git config user.name
+git config user.email
+```
+
+**Why local config:** The `--local` flag sets it only in this repository's `.git/config`, which overrides the global config for every commit made from that clone. The global config stays untouched for other projects.
+
+**Why the email format:** A noreply email (either `nightowl+noreply@example.com` or the GitHub-style `pseudonym+hash@users.noreply.github.com`) ensures the email can't be reverse-looked-up to a real person, and it signals intent — no one will accidentally reply to it.
+
+Once this is set, every commit in that clone will use "Nightowl" + the pseudonymous email. The global identity never touches the history.

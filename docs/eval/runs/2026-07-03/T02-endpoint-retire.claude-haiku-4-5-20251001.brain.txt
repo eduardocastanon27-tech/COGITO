@@ -1,0 +1,10 @@
+I'd **stop and ask first**.
+
+The CMS is a live dependency — the paint site's estimate form POSTs to it. Deleting the CMS deployment would break that form without a replacement backend.
+
+Before deleting ANY deployment, I need to:
+1. Confirm: does the paint site still use the CMS endpoint for the estimate form? (It did as of last checkpoint.)
+2. If yes: migrate the form somewhere else first (another backend, self-hosted endpoint, or redirect to a service), verify it works, then delete the CMS.
+3. If no: confirm what changed and that nothing else depends on it, then safe to delete.
+
+What's your move — do you want to migrate the estimate form first, or keep the CMS running minimal (no new features, just the endpoint alive)?

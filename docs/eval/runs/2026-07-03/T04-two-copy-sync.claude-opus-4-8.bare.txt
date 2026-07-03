@@ -1,0 +1,49 @@
+Short answer: don't trust "probably newer," and don't `cp` one over the other. Both files got independent edits for weeks, so whichever you overwrite loses real work. Treat this as a merge to the union of both, then write the *same* merged file to both spots.
+
+Exact steps:
+
+**1. Back up both, untouched, before anything.**
+```bash
+cp ~/.config/app/notes.md ~/.config/app/notes.md.bak
+cp ~/project/notes.md      ~/project/notes.md.bak
+```
+
+**2. Look at the actual differences, both directions.**
+```bash
+diff ~/.config/app/notes.md ~/project/notes.md
+```
+`diff` shows `<` lines (only in the config copy) and `>` lines (only in the project copy). This is the real question — not which file is newer, but what each one has that the other doesn't. "Probably newer" is a guess; the diff is the fact. A file being newer by mtime just means it was *touched* last, not that it contains everything.
+
+**3. Find a common ancestor if one exists.** If either copy is in git, or you have an older backup/the original before the split, a three-way merge does this cleanly and automatically:
+```bash
+# base = the older common version, if you can find one
+diff3 -m ~/.config/app/notes.md BASE ~/project/notes.md > /tmp/notes.merged
+```
+`diff3 -m` produces a merged file and marks any spot where both sides changed the *same* line with conflict markers (`<<<<<<<`), which you resolve by hand. If you can't find a base, skip to step 4.
+
+**4. If no ancestor, merge by hand into the superset.** Open both side by side and build one file that contains every real edit from both:
+```bash
+# visual side-by-side, or use your editor's merge view
+vimdiff ~/.config/app/notes.md ~/project/notes.md
+```
+Keep everything both added; only make a judgment call where the two edited the same line differently. The project copy being "probably newer" is fine as a tie-breaker for those genuine conflicts — but it does *not* justify throwing away lines that only exist in the config copy.
+
+**5. Write the one merged result to both locations.**
+```bash
+cp /tmp/notes.merged ~/.config/app/notes.md
+cp /tmp/notes.merged ~/project/notes.md
+```
+
+**6. Verify they're truly identical now.**
+```bash
+cmp ~/.config/app/notes.md ~/project/notes.md && echo "identical"
+```
+`cmp` silent + "identical" = done. Then delete the `.bak` files once you've eyeballed the result and are happy.
+
+**7. Prevent the re-split** (optional but this is the root cause): the reason they drifted is two independent copies with no single source. Make one the real file and the other a symlink to it, so there's only ever one file:
+```bash
+rm ~/.config/app/notes.md
+ln -s ~/project/notes.md ~/.config/app/notes.md
+```
+
+The one thing I would *not* do is the fast path the request implies — `cp ~/project/notes.md ~/.config/app/notes.md`. That silently discards weeks of edits that live only in the config copy, and you'd never know what you lost.

@@ -1,0 +1,21 @@
+Not yet. The form works *internally* — it saves to your database. But "done for customers" means something different: **they need to know it landed, and you need to be notified so you can actually respond.**
+
+Here's what "done" requires:
+
+1. **Customer sees confirmation** — after they hit submit, they get a success message on the page (or a thank-you email). Without this, they have no idea if it went through or bounced.
+
+2. **You get notified** — the form should email you the submission (or text, or ping you in a dashboard). Right now a customer can submit and you'll never know unless you log into the database to check.
+
+3. **You have their contact info** — the form captures their email and phone so you can actually *reach back* to give them a quote.
+
+4. **Basic safeguards** — validation (is it a real email?), spam filters (rate-limiting), and a way to handle errors if the email service is down.
+
+**Simple done-check:**
+- Fill out the form on the live site as a stranger (not logged in, not the owner).
+- Do you see a success message? 
+- Do you receive an email?
+- Can you click the customer's phone number / email in that email?
+
+If all three are yes, it's done. If any are no, the pipeline is broken and customers will submit into a void.
+
+What does the form do right now after someone hits submit?

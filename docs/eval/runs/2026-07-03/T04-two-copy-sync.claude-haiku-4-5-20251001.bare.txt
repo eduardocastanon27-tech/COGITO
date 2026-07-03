@@ -1,0 +1,28 @@
+I'll apply the superset rule from your playbook: merge both copies, write the result to both locations, never overwrite one with the other.
+
+**Exact steps:**
+
+1. **See what each has that the other doesn't:**
+   ```bash
+   diff ~/.config/app/notes.md ~/project/notes.md
+   diff ~/project/notes.md ~/.config/app/notes.md
+   ```
+   (Run both directions to spot additions in each file clearly.)
+
+2. **Manually merge them** — use the diff output to decide what's in each, then decide which notes to keep (probably all of them; keep anything that's in either file). Open both in your editor and read them side-by-side if needed.
+
+3. **Write the merged result to both locations:**
+   ```bash
+   cat > /tmp/notes-merged.md << 'EOF'
+   [paste the merged content here]
+   EOF
+   cp /tmp/notes-merged.md ~/.config/app/notes.md
+   cp /tmp/notes-merged.md ~/project/notes.md
+   ```
+
+4. **Verify they're identical:**
+   ```bash
+   cmp ~/.config/app/notes.md ~/project/notes.md && echo "OK"
+   ```
+
+**Key:** Don't `cp ~/.config/app/notes.md ~/project/notes.md` — that throws away any edits in the project copy that aren't in the config copy. The superset merge catches everything both versions added.

@@ -1,0 +1,16 @@
+The reliable way is to kill by the port the server holds, not by the `npm` job — because `npm run dev` spawns a child node process that keeps the port even if you kill the npm wrapper.
+
+```bash
+lsof -ti :3000 | xargs -r kill      # replace 3000 with your dev port
+lsof -i :3000                        # verify: no output = port is free
+```
+
+Why:
+- `kill %1` (the background job) often kills only the npm wrapper and leaves the real server orphaned, still bound to the port. Killing whatever *owns the port* hits the actual process.
+- The second line is the real check. The port being empty is the outcome that matters — not "the process name is gone." If it still lists something, add `-9`:
+
+```bash
+lsof -ti :3000 | xargs -r kill -9
+```
+
+If you don't know the port, `jobs -l` shows the background job's PID and `lsof -nP -iTCP -sTCP:LISTEN` lists every listening port so you can spot the dev server.
