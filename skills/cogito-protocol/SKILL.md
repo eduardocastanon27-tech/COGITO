@@ -162,3 +162,8 @@ Keep it proportional: a few lines for a medium effort, a full pass for a multi-h
 ## Relationship to other skills
 
 If the task is a code/web project, also apply the user's systems-thinking skill (sources of truth, layers, downstream consumers). That skill governs the artifact; this skill governs the reasoning and memory around building it. They compose: its "source of truth" question is this skill's "state file" question applied to code.
+
+**Council for business decisions:** The §2 three-layer analysis + red-team pass is equally effective for business model and income strategy decisions — not just technical ones. The binding constraint (Layer 3) reliably surfaces non-obvious blockers (e.g., distribution > product quality in e-commerce). Session evidence: 2026-06-29 income experiment council correctly identified that distribution, not the tool, was the binding constraint.
+
+**Reference files:**
+- `references/ecommerce-solo-2026.md` — verified 2026 e-commerce platform data, model margins, AI edge points, and low-competition niches for Eduardo's income experiment. Load when running a council on online income strategy.
