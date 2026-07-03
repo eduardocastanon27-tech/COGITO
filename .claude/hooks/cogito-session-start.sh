@@ -33,10 +33,31 @@ fi
 git -C "$REPO" fetch --quiet origin main 2>/dev/null || true
 canon_read() { git -C "$REPO" show "$BRAIN_REF:$1" 2>/dev/null || cat "$REPO/$1" 2>/dev/null || true; }
 
-# Re-install the protocol every session from the canonical ref (the container may
-# revert skill edits, but origin/main is durable). The ledger is never clobbered.
-skill_md="$(canon_read skills/cogito-protocol/SKILL.md)"
-if [ -n "$skill_md" ]; then printf '%s\n' "$skill_md" > "$SKILL_DST/SKILL.md"; fi
+# Re-install protocol files every session from the canonical ref (the container may
+# revert skill edits, but origin/main is durable) — EXCEPT when the installed copy
+# has local-only lines canonical lacks: then back up + warn instead of overwriting
+# (the I:8 two-copy scar: never blind-copy between brain copies; merge to the
+# superset first). Fail-open: a check error leaves both copies alone.
+install_guarded() {  # $1 = repo-relative source path, $2 = destination file
+  local content stray
+  content="$(canon_read "$1")"
+  [ -n "$content" ] || return 0
+  if [ -f "$2" ]; then
+    stray="$(printf '%s\n' "$content" | grep -vxF -f /dev/stdin "$2" 2>/dev/null | grep -c . || true)"
+  else
+    stray=0
+  fi
+  if [ "${stray:-0}" -gt 0 ]; then
+    cp -f "$2" "$2.diverged-$(date +%F)" 2>/dev/null || true
+    echo "cogito: WARNING — $(basename "$2") has ${stray} local line(s) not in canonical; NOT overwritten. Superset-merge needed (the I:8 two-copy scar). Backup: $2.diverged-$(date +%F)"
+  else
+    printf '%s\n' "$content" > "$2"
+  fi
+}
+install_guarded skills/cogito-protocol/SKILL.md       "$SKILL_DST/SKILL.md"
+install_guarded skills/cogito-protocol/COGITO-CORE.md "$SKILL_DST/COGITO-CORE.md"
+mkdir -p "$SKILL_DST/references" 2>/dev/null || true
+install_guarded skills/cogito-protocol/references/ecommerce-solo-2026.md "$SKILL_DST/references/ecommerce-solo-2026.md"
 if [ ! -f "$LEDGER" ]; then
   lessons_md="$(canon_read skills/cogito-protocol/LESSONS.md)"
   if [ -n "$lessons_md" ]; then
@@ -63,7 +84,10 @@ CTX
 mission="$(canon_read docs/ACTIVE-MISSION.md)"
 if [ -n "$mission" ]; then
   printf '\n----- ACTIVE MISSION (resume this) -----\n'
-  printf '%s\n' "$mission"
+  printf '%s\n' "$mission" | head -c 6000
+  if [ "${#mission}" -gt 6000 ]; then
+    printf '\n[TRUNCATED at 6000 chars — ACTIVE-MISSION.md is over budget; compact it into checkpoints (protocol §3)]\n'
+  fi
   printf '\n----- end ACTIVE MISSION -----\n'
 fi
 
