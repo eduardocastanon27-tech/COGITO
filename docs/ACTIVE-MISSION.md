@@ -8,7 +8,7 @@ Box-wide file-native brain: lessons/metacognition that stop repeated mistakes (S
 
 ## Cogito core (this repo's own threads — detail stays here)
 - **Cogito upgrade 2026-07 — SHIPPED + ARMED (2026-07-03).** Playbook + COGITO-CORE live; global hooks armed box-wide (incl. Hermes brain; guard binds under yolo); eval proves the lift (+0.62/+0.75). Kill: `COGITO_GLOBAL=0`. Detail: `docs/checkpoints/2026-07-03-cogito-upgrade.md`.
-- **Job B — project-progress memory — IN PROGRESS (2026-07-04).** Two-tier: lessons global, progress per-project (`PROGRESS.md` in each repo, loaded on `cd`, written back + auto-committed by a Stop hook). Slices 1–2 done on branch `cogito/job-b-progress` (lazy load + write-back, verified). Next: slice 3 (this index) → 4 (domain-relevant lesson pull) → 5 (skill scaffolding). Design detail: `docs/checkpoints/memory-audit-2026-07-04.md` + council in-session.
+- **Job B — project-progress memory — SHIPPED on branch (2026-07-04).** Two-tier: lessons global, progress per-project. All 5 slices done + verified on `cogito/job-b-progress` (4 commits, `main` untouched): (1) lazy repo-local `PROGRESS.md` load on `cd`; (2) write-back Stop hook (auto-commits `PROGRESS.md` locally, stamped, not edit-gated, never pushes); (3) this thin two-tier index; (4) project-scoped lesson retrieval `[#proj:<slug>]` (a project's specifics don't cross-pull); (5) `cogito-consolidate.sh suggest-skills` scaffolds un-indexed draft skills from recurring clusters. Ready to land to `main` (owner go). Detail: `docs/checkpoints/memory-audit-2026-07-04.md` + council in-session.
 - **Brain write-back — ON.** Append-only lesson PRs auto-merge; anything editing canon waits for the owner's one-tap. Private satellites drain via `scripts/cogito-drain.sh <path>`. Detail: `docs/checkpoints/2026-06-24-writeback-pipeline.md`.
 
 ## Project index (satellites — one line each; detail in each repo's PROGRESS.md)
@@ -20,7 +20,7 @@ Box-wide file-native brain: lessons/metacognition that stop repeated mistakes (S
 - **teacher** — deployed private (Vercel `cogito`); neural voice on a branch, NOT deployed; paid-model/voice question open. Detail: `docs/checkpoints/2026-06-15-teacher-deployed-brain-shared.md`.
 
 ## Resume here (next)
-1. Job B: build slice 4 (generic vs project-specific lesson tags for domain-relevant pull) then slice 5 (skill scaffolding). Then land branch `cogito/job-b-progress` to `main` (owner go).
+1. Job B: **land branch `cogito/job-b-progress` to `main`** (owner go — 4 commits, all verified). Then review `docs/skill-drafts/cogito-shell/` and graduate only after it works in 2+ real sessions.
 2. Owner items: $5 AI credit (unblocks CMS assistant + StoreScript), PAT revoke-or-rotate, paint GBP fixes (phone (803) 806-2190 + category "Painter", call-flow).
 3. Watch the armed global brain in daily use; next consolidation pass when the severe set nears its 7k cap.
 
