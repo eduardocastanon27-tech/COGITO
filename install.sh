@@ -83,7 +83,7 @@ if [ "${1:-}" = "--global" ] || [ "${1:-}" = "--global-hook" ]; then
   [ "${1:-}" = "--global-hook" ] && say "note: --global-hook is superseded by --global (same effect now)"
   BIN="$CLAUDE_HOME/cogito/bin"
   mkdir -p "$BIN"
-  for s in cogito-global-load.sh cogito-guard.sh cogito-recall.sh cogito-learn.sh; do
+  for s in cogito-global-load.sh cogito-guard.sh cogito-recall.sh cogito-learn.sh cogito-progress.sh; do
     cp -f "$REPO_DIR/scripts/$s" "$BIN/$s"
     chmod +x "$BIN/$s"
   done
@@ -125,6 +125,7 @@ changed = 0
 changed += ensure("SessionStart", "startup|clear|compact", bin_dir + "/cogito-global-load.sh")
 changed += ensure("PreToolUse", "Bash", bin_dir + "/cogito-guard.sh", 10)
 changed += ensure("UserPromptSubmit", None, bin_dir + "/cogito-recall.sh", 10)
+changed += ensure("Stop", None, bin_dir + "/cogito-progress.sh --flush", 10)
 os.makedirs(os.path.dirname(settings), exist_ok=True)
 with open(settings, "w") as f:
     json.dump(data, f, indent=2)

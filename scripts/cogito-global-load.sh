@@ -67,7 +67,26 @@ fi
 echo "Cogito global brain loaded (lean mode). Write-back from ANY session:"
 echo "  ~/.claude/cogito/bin/cogito-learn.sh \"[#tag] [I:n] SYMPTOM -> ROOT CAUSE -> RULE\"   (--playbook / --bump P###:helpful)"
 
-# 4. Pre-render the Hermes proxy fallback payload (only consumed if proxy-side
+# 4. Project progress (Job B) — the per-project "where are we / what's left"
+#    state. Loaded ONLY when the current repo carries a PROGRESS.md, so it is
+#    lazy by construction: no file => silent, no portfolio dump, no guessing
+#    which project (the cwd IS the answer). Distinct from the lessons brain
+#    above; lives in the project's OWN repo, never in Cogito's. Repo-root
+#    resolved via git so it works from any subdirectory; falls back to cwd.
+root="$(git -C "$proj" rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$root" ] || root="$proj"
+progress=""
+for cand in "$root/PROGRESS.md" "$root/.claude/PROGRESS.md"; do
+  [ -f "$cand" ] && { progress="$cand"; break; }
+done
+if [ -n "$progress" ]; then
+  echo
+  echo "----- COGITO project state: $(basename "$root") (source: ${progress#"$HOME"/}) -----"
+  line_cap 6000 < "$progress" 2>/dev/null || true
+  echo "----- (this is the project's own PROGRESS.md — edit it to update; it rides the project repo) -----"
+fi
+
+# 5. Pre-render the Hermes proxy fallback payload (only consumed if proxy-side
 #    injection is ever wired; costs one small file write).
 {
   head -c 1600 "$D/COGITO-CORE.md" 2>/dev/null
