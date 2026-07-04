@@ -8,6 +8,14 @@
 # each turn; this pulls the RELEVANT deferred ones on demand. No embeddings — plain
 # keyword overlap over a tiny markdown file.
 #
+# Project scope (slice 4): a lesson may be tagged [#proj:<slug>] when it is
+# SPECIFIC to one project (its vendor/route/store names, e.g. cogstack's deploy
+# method). Such a lesson is surfaced only when you are working IN that project;
+# from a DIFFERENT project it is suppressed, so paint's specifics never mislead a
+# storescript session. Generic (untagged) lessons cross-pull freely by keyword —
+# that is how a new website still gets the reusable website lessons from the paint
+# build. <slug> = the project's git-repo directory name, lowercased.
+#
 # Reads the prompt from stdin JSON (.prompt); a UserPromptSubmit hook's stdout is
 # added to the session context. Non-fatal, fail-quiet: any problem -> no output,
 # the prompt proceeds normally.
@@ -28,6 +36,12 @@ LEDGER="${COGITO_LEDGER:-}"
 [ -f "$LEDGER" ] || exit 0
 PLAYBOOK="$(dirname "$LEDGER")/PLAYBOOK.md"
 
+# Current project scope: only a real git repo yields a slug. At ~ or a non-repo,
+# PROJ_SLUG stays empty -> no suppression (keyword overlap alone governs).
+PROJ_SLUG=""
+_ROOT="$(git -C "${CLAUDE_PROJECT_DIR:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
+[ -n "$_ROOT" ] && PROJ_SLUG="$(basename "$_ROOT" | tr '[:upper:]' '[:lower:]')"
+
 input="$(cat 2>/dev/null || true)"
 prompt="$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null || true)"
 [ -z "$prompt" ] && exit 0
@@ -38,10 +52,20 @@ MIN_HITS="${COGITO_RECALL_MIN_HITS:-2}"     # min distinct keyword overlaps to c
 # Score each NON-always-loaded lesson + playbook strategy by distinct
 # prompt-keyword overlap; surface the top MAX with >= MIN_HITS. One python pass
 # over ~100 lines — fast, no deps.
-python3 - "$LEDGER" "$prompt" "$MAX" "$MIN_HITS" "$PLAYBOOK" <<'PY' 2>/dev/null || exit 0
+python3 - "$LEDGER" "$prompt" "$MAX" "$MIN_HITS" "$PLAYBOOK" "$PROJ_SLUG" <<'PY' 2>/dev/null || exit 0
 import sys, re, os
 ledger, prompt, maxn, minhits = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
 playbook = sys.argv[5] if len(sys.argv) > 5 else ''
+proj_slug = (sys.argv[6] if len(sys.argv) > 6 else '').lower()
+
+# A lesson tagged [#proj:X] is specific to project X; suppress it when the current
+# project is a DIFFERENT one. Untagged lessons are generic and always eligible.
+PROJ_RE = re.compile(r"\[#proj:([a-z0-9_-]+)\]", re.I)
+def cross_project(line):
+    if not proj_slug:
+        return False
+    tags = [t.lower() for t in PROJ_RE.findall(line)]
+    return bool(tags) and proj_slug not in tags
 
 STOP = set("""the a an and or but if then else for to of in on at by is are was were be been being
 this that these those with from into as it its their our your his her them they we you i he she
@@ -67,6 +91,8 @@ for line in open(ledger, encoding="utf-8"):
     # not always-loaded and must stay recallable (caught 2026-07-03)
     if "[#critical]" in line or re.search(r"\[I:(9|10)\]", line):   # already always-loaded
         continue
+    if cross_project(line):                                         # another project's specifics
+        continue
     hits = pt & toks(line)
     if len(hits) >= minhits:
         scored.append((len(hits), line.rstrip()))
@@ -76,6 +102,8 @@ for line in open(ledger, encoding="utf-8"):
 if playbook and os.path.exists(playbook):
     for line in open(playbook, encoding="utf-8"):
         if not line.startswith("- [P"):
+            continue
+        if cross_project(line):
             continue
         hits = pt & toks(line)
         if len(hits) >= minhits:
