@@ -34,6 +34,16 @@ Cogito is the **memory** (it persists as files and loads into every session, eve
 
 The loop is the user-facing rhythm; the numbered protocol sections below are the machinery it invokes.
 
+## Opening & creating projects (Job B — check-local-first)
+
+When the user names a project to work on, or a new one to create, resolve it with the orchestrator rather than guessing paths or re-cloning:
+
+- **"work on <name>" / "open <name>"** → run `~/.claude/cogito/bin/cogito-project.sh open <name>`. It **checks local first**: if `~/projects/<name>` exists it loads that (NO clone); only if it is absent does it shallow-clone from GitHub. It prints `RESOLVED=<abs path>` then the project's `PROGRESS.md`. Then work AT that path (`cd <path> && …` or `git -C <path>`), never inherited cwd. **Never re-clone what is already local.**
+- **"new project <name>"** → run the `new-project-setup` skill; its step 3.5 calls `cogito-project.sh init <name>`, so the project carries `PROGRESS.md` (Job B memory) from commit one.
+- **unsure of the name / "what am I working on?"** → `cogito-project.sh list` shows local projects and which already have a `PROGRESS.md`.
+
+The SessionStart hook already auto-loads `PROGRESS.md` when a session STARTS inside a repo; this is the mid-session path for when Cogito is opened elsewhere and the user then names the project.
+
 ## The protocol (apply proportionally — full protocol for big tasks, lightweight for medium ones)
 
 ### 1. Assumption check (before solving)
@@ -70,6 +80,8 @@ When the user says **"checkpoint"**, or when a substantial multi-session project
 5. Anything the user corrected (corrections are the highest-value memory; never lose them)
 
 Keep it under one page. Tell the user to paste or upload it at the start of the next session on this project. This defeats session death; nothing else reliably does.
+
+**Auto-persist to the repo (2026-07-04).** When the work lives in a git repo, do not leave the checkpoint stranded in ephemeral scratchpad — as part of producing the checkpoint, write it to `docs/checkpoints/<slug>-<YYYY-MM-DD>.md` and **commit it automatically on the current branch** (unprompted; the user should not have to say "commit it"). Hard guardrail: a checkpoint commit **stays on the current/feature branch — never `git push` to, merge into, or fast-forward `master`/`main`, and never trigger a deploy** without an explicit, branch-specific go-ahead. A doc is not deployable work, and "don't strand work" never overrides "deploy only on an explicit go-ahead" (ledger `[#process] [I:7]`). Still present the checkpoint inline in chat as well — the user is the only guaranteed-persistent layer, and the commit is a convenience, not a replacement.
 
 ### 4b. Lessons ledger (coding and project sessions)
 

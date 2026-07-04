@@ -83,7 +83,7 @@ if [ "${1:-}" = "--global" ] || [ "${1:-}" = "--global-hook" ]; then
   [ "${1:-}" = "--global-hook" ] && say "note: --global-hook is superseded by --global (same effect now)"
   BIN="$CLAUDE_HOME/cogito/bin"
   mkdir -p "$BIN"
-  for s in cogito-global-load.sh cogito-guard.sh cogito-recall.sh cogito-learn.sh cogito-progress.sh; do
+  for s in cogito-global-load.sh cogito-guard.sh cogito-recall.sh cogito-learn.sh cogito-progress.sh cogito-project.sh; do
     cp -f "$REPO_DIR/scripts/$s" "$BIN/$s"
     chmod +x "$BIN/$s"
   done
