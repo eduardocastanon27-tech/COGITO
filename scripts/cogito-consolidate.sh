@@ -138,8 +138,64 @@ verify() {
   echo "Now read 'git diff' for over-merge (a rule that swallowed a distinct cause), then commit."
 }
 
+suggest_skills() {
+  [ -f "$LEDGER" ] || die "no ledger at $LEDGER"
+  local INDEX="$ROOT/skills/INDEX.md"
+  local trigger="${COGITO_SKILL_TRIGGER:-8}"
+  local draftroot="$ROOT/docs/skill-drafts"
+  echo "Cogito skill suggestions — recurring clusters (>= $trigger lessons on one tag) with NO covering skill"
+  echo "  index: $INDEX"
+  [ -f "$INDEX" ] || echo "  (note: INDEX.md missing — every cluster treated as uncovered)"
+  echo "  A cluster this large is a recurring problem domain. If no skill covers it, we scaffold a"
+  echo "  DRAFT (un-indexed, cannot auto-load). It becomes a real skill only after the graduation gate."
+  echo
+  local clusters suggested=0
+  clusters="$(grep '^- ' "$LEDGER" | grep -oE '\[#[a-z][a-z-]*\]' | sort | uniq -c | sort -rn || true)"
+  while read -r count tag; do
+    [ -n "${count:-}" ] || continue
+    [ "$count" -ge "$trigger" ] 2>/dev/null || continue
+    local kw="${tag//[\[\]#]/}"
+    case "$kw" in critical|process) continue;; esac     # meta-tags (severity / the protocol itself), not skill domains
+    if [ -f "$INDEX" ] && grep -qiw "$kw" "$INDEX" 2>/dev/null; then
+      echo "  [covered]  #$kw  ($count lessons) — an indexed skill already addresses this"
+      continue
+    fi
+    suggested=$((suggested + 1))
+    local dstub="$draftroot/cogito-$kw"
+    echo "  [SUGGEST]  #$kw  ($count lessons) — no covering skill -> draft ${dstub#"$ROOT"/}/SKILL.md"
+    if [ -f "$dstub/SKILL.md" ]; then
+      echo "             draft already exists — review + graduate, or delete"
+      continue
+    fi
+    mkdir -p "$dstub"
+    {
+      echo "---"
+      echo "name: cogito-$kw"
+      echo "description: DRAFT (not indexed). Auto-scaffolded from $count recurring [#$kw] lessons. NOT a real skill until it works in 2+ real sessions and is added to skills/INDEX.md."
+      echo "---"
+      echo
+      echo "# $kw — draft skill (UNVERIFIED, not indexed)"
+      echo
+      echo "Scaffolded because $count lessons carry [#$kw] — a recurring problem domain with no covering skill. The RULE clauses distilled from those lessons:"
+      echo
+      grep '^- ' "$LEDGER" | grep -F "[#$kw]" | awk -F' -> ' '{print "- "$NF}' | head -12
+      echo
+      echo "## Graduation gate (do not skip)"
+      echo "Do NOT add this to skills/INDEX.md until it has demonstrably worked in 2+ INDEPENDENT real sessions (Voyager's verified-skill rule, strengthened because human-judged success is noisier than a code-execution check). Until then it is a hypothesis, not procedural memory. To graduate: flesh out the procedure, prove it live twice, move it under skills/, then add the INDEX.md line."
+    } > "$dstub/SKILL.md"
+    echo "             scaffolded ($count lessons distilled)"
+  done <<< "$clusters"
+  echo
+  if [ "$suggested" -eq 0 ]; then
+    echo "No uncovered recurring clusters at threshold $trigger — nothing to scaffold."
+  else
+    echo "$suggested draft(s) under ${draftroot#"$ROOT"/}/. Review, exercise in real sessions, graduate only per the gate."
+  fi
+}
+
 case "${1:-}" in
-  report) report ;;
-  verify) verify ;;
-  *) echo "usage: cogito-consolidate.sh {report|verify}" >&2; exit 2 ;;
+  report)         report ;;
+  verify)         verify ;;
+  suggest-skills) suggest_skills ;;
+  *) echo "usage: cogito-consolidate.sh {report|verify|suggest-skills}" >&2; exit 2 ;;
 esac
