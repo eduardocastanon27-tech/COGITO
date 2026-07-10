@@ -60,6 +60,15 @@ if [ "$MODE" = lesson ] && ! grep -qF '[#sector:' <<<"$ARG"; then
   [ -n "$_sec" ] && ARG="[#sector:$_sec] $ARG"
 fi
 
+# Person/technical lane guard (Cogito<->native merge): the ledger is FACELESS +
+# technical (the critical #comms rule). A lesson that names Eduardo is likely a
+# PERSON fact that belongs in the WHO lane, not here — warn and point at the
+# person-card, but still record (fail-open, never lose a lesson). herestring, not
+# a pipe, for grep -q under pipefail.
+if [ "$MODE" = lesson ] && grep -qiF 'eduardo' <<<"$ARG"; then
+  echo "cogito-learn: NOTE — this names Eduardo. The ledger is faceless + technical; a PERSON fact belongs in ~/.hermes/person-card.md (the WHO lane). Recording anyway." >&2
+fi
+
 # Next free [P###] id in a playbook file (10# guards the octal trap: P012 -> 12).
 next_pid() {
   local max
