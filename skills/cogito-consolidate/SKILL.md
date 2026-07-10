@@ -1,6 +1,6 @@
 ---
 name: cogito-consolidate
-description: Ledger maintenance for Cogito's lessons — keep the always-loaded set lean without losing anything, two ways. (1) CONSOLIDATE — cluster by tag, merge/supersede redundant lessons into fewer higher-tier rules. (2) DECAY — archive cold, explicitly-low-importance lessons (refresh-on-use keeps useful ones alive). Both MOVE raw lines into LESSONS-ARCHIVE.md with provenance (never delete) and end with the same conservation gate. Use when the active ledger (skills/cogito-protocol/LESSONS.md) passes ~60 lessons, after a severe (I:9-10 / #critical) lesson lands, or when the user says "/consolidate", "decay/prune/tidy/compress the ledger", "archive old lessons". The companion to cogito-protocol §4b. Conservative by design — when in doubt, keep.
+description: Ledger maintenance for skills/cogito-protocol/LESSONS.md — CONSOLIDATE (merge redundant lessons into fewer higher-tier rules) or DECAY (archive cold low-importance ones). Always MOVE lines into LESSONS-ARCHIVE.md with provenance, never delete; finish with the conservation gate. Use when the ledger passes ~60 lessons, after a severe lesson lands, or on "/consolidate", "prune/tidy/compress the ledger".
 ---
 
 # Cogito — Ledger Maintenance: Consolidate (`/consolidate`) + Decay

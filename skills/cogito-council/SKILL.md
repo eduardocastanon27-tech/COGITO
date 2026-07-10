@@ -1,6 +1,6 @@
 ---
 name: cogito-council
-description: Free, Claude-only multi-model deliberation — the "council". Fan a hard or high-stakes question out to several Claude panelists with deliberately DISTINCT lenses (answering independently, in parallel), then a judge compares them — consensus, contradictions, coverage gaps, unique insights, blind spots (the OpenRouter Fusion judge structure) — and you synthesize the final answer. Use when one pass isn't enough — research, expert critique, compare-and-contrast, design or architecture calls, anything where being wrong is costly. NOT for everyday questions (each run spends several agent calls). The free precursor to OpenRouter Fusion; same shape, so it upgrades cleanly to a real cross-provider panel later. Triggers — "/council", "convene the council", "get multiple opinions", "deliberate on this", "fusion this".
+description: Multi-perspective deliberation ("the council") — fan a hard, high-stakes question out to parallel Claude panelists with deliberately distinct lenses, have a judge compare answers (consensus, contradictions, gaps, blind spots), then synthesize. Costs several agent calls — not for everyday questions. Triggers — "/council", "convene the council", "get multiple opinions", "deliberate on this", "fusion this".
 ---
 
 # Cogito Council (free, Claude-only multi-model deliberation)

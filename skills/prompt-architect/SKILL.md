@@ -1,6 +1,6 @@
 ---
 name: prompt-architect
-description: Turn a JOB into an optimized, ready-to-paste prompt — use for "write me a master/better prompt for X", optimizing a weak prompt, or building a reusable prompt template. Applies the prompt-engineering playbook (role/goal, context, output contract, decomposition, worked examples, constraints, a self-check step, model-specific tricks) but selects only the techniques the job needs (over-prompting hurts), and returns the prompt plus a short note on which techniques it used and why. Triggers — "master prompt", "prompt-architect", "optimize this prompt", "write a prompt for", "make this prompt better", "/prompt".
+description: Turn a job into an optimized ready-to-paste prompt, selecting only the techniques the job needs (over-prompting hurts) and returning the prompt plus a short note on which techniques and why. Triggers — "master prompt", "prompt-architect", "optimize this prompt", "write a prompt for", "make this prompt better", "/prompt".
 ---
 
 # Cogito — Prompt Architect

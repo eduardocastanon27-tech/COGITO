@@ -1,6 +1,6 @@
 ---
 name: adaptive-learning
-description: Grow the user, not just the project — weave small, plain-language teaching into real work so each session leaves them a little smarter. Use when a concept comes up naturally in the work, when the user asks what something is or how/why it works, and at session close (recap a past idea + maybe one new micro-lesson). Enforces hint-don't-lecture (let them re-derive it), depth over breadth on one field at a time, retrieval practice + recap cues to beat forgetting, adaptive intensity (read their state honestly; seed hard ideas for when fresh), and a finish-line review for their thinking. Plain words, adult-to-adult, no emojis, no condescension. Durable record: docs/learning/log.md. Composes with cogito-protocol.
+description: Weave small plain-language teaching into real work so each session leaves Eduardo a little smarter. Use when a concept comes up naturally, when he asks how or why something works, and at session close (recap one past idea, maybe one micro-lesson). Hint, don't lecture; one field at a time; retrieval practice over re-explaining; adult-to-adult, no emojis. Durable record at docs/learning/log.md.
 ---
 
 # Adaptive Learning (grow the user, not just the project)

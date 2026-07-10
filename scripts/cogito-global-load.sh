@@ -28,7 +28,7 @@ D="$HOME/.claude/skills/cogito-protocol"
 L="$D/LESSONS.md"
 P="$D/PLAYBOOK.md"
 
-# Fire log — the verification instrument (Hermes round-trip checks read this).
+# Fire log — proof the hook fired (checked manually / by audits; nothing polls it).
 mkdir -p "$HOME/.claude/cogito" 2>/dev/null || true
 {
   printf '%s cwd=%s\n' "$(date -u +%FT%TZ)" "$PWD" >> "$HOME/.claude/cogito/last-fire.log"
@@ -43,15 +43,23 @@ line_cap() { awk -v m="$1" '{n+=length($0)+1; if(n>m) exit; print}'; }
 if [ -f "$D/COGITO-CORE.md" ]; then
   head -c 2400 "$D/COGITO-CORE.md" 2>/dev/null || true
   echo
+  core_sz=$(wc -c < "$D/COGITO-CORE.md" 2>/dev/null || echo 0)
+  [ "$core_sz" -gt 2400 ] && echo "(!! COGITO-CORE.md ${core_sz}B > 2400B cap — tail truncated mid-rule; trim the file)"
 fi
 
 # 2. Critical lessons, most severe first ([#critical] TAG match, not the bare
 #    word — a lesson merely mentioning it must not always-load).
 if [ -f "$L" ]; then
   echo "----- COGITO: critical lessons (never repeat these) -----"
-  grep -E '^- .*(\[I:(9|10)\]|\[#critical\])' "$L" 2>/dev/null \
-    | sed -n 's/.*\[I:\([0-9]*\)\].*/\1 &/p' | sort -rn | cut -d' ' -f2- \
-    | line_cap 1500 || true
+  crit="$(grep -E '^- .*(\[I:(9|10)\]|\[#critical\])' "$L" 2>/dev/null \
+    | sed -n 's/.*\[I:\([0-9]*\)\].*/\1 &/p' | sort -rn | cut -d' ' -f2- || true)"
+  printf '%s\n' "$crit" | line_cap 2400 || true
+  # Contract: ALL criticals load. Warn on overflow instead of truncating silently.
+  crit_total=$(printf '%s' "$crit" | wc -c)
+  crit_shown=$(printf '%s\n' "$crit" | line_cap 2400 | wc -c)
+  if [ "$crit_total" -gt "$crit_shown" ]; then
+    echo "(!! critical set ${crit_total}B exceeds ${crit_shown}B shown — some criticals NOT loaded; run cogito-consolidate)"
+  fi
   echo "----- COGITO tag index (grep a [#tag] in $L for depth) -----"
   grep '^- ' "$L" 2>/dev/null | grep -oE '\[#[a-z][a-z-]*\]' | sort | uniq -c | sort -rn \
     | head -12 | sed 's/^/  /' || true
@@ -86,13 +94,7 @@ if [ -n "$progress" ]; then
   echo "----- (this is the project's own PROGRESS.md — edit it to update; it rides the project repo) -----"
 fi
 
-# 5. Pre-render the Hermes proxy fallback payload (only consumed if proxy-side
-#    injection is ever wired; costs one small file write).
-{
-  head -c 1600 "$D/COGITO-CORE.md" 2>/dev/null
-  echo
-  grep -E '^- .*(\[I:(9|10)\]|\[#critical\])' "$L" 2>/dev/null \
-    | sed -n 's/.*\[I:\([0-9]*\)\].*/\1 &/p' | sort -rn | cut -d' ' -f2- | head -2
-} > "$HOME/.claude/cogito/hermes-brain.txt" 2>/dev/null || true
+# (Removed 2026-07-07 audit: hermes-brain.txt pre-render — grep found zero
+#  consumers; re-add only when proxy-side injection is actually wired.)
 
 exit 0

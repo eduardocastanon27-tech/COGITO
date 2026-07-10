@@ -1,6 +1,6 @@
 ---
 name: cogito-teacher
-description: The file-native teaching engine — the "golden structure" for the personalised AI teacher. Use to run an adaptive teaching session for a specific learner: open with a due retrieval rep, pick the next unlocked lesson, teach it with the constrained hint-ladder (never lecture, never invent), check observable mastery, and record progress. Presentation-agnostic (plain text now, VR later — the same lesson "meaning" drives both) and learner-agnostic (the user now, the sibling later — swap the profile, not the engine). Composes adaptive-learning (tone + loop), cogito-review.sh (spaced repetition), and the lesson-object format. Runnable entry point: scripts/cogito-teach.sh [learner]. Plain words, adult-to-adult, no emojis, no condescension.
+description: Adaptive teaching session for a named learner — open with a due retrieval rep, pick the next unlocked lesson, teach via the constrained hint-ladder (never lecture, never invent), check observable mastery, record progress. Entry point scripts/cogito-teach.sh [learner]. Composes adaptive-learning and cogito-review.sh spaced repetition; swap the learner profile, not the engine.
 ---
 
 # Cogito Teacher — the golden structure
