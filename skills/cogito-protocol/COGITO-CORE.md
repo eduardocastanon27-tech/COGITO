@@ -9,9 +9,11 @@ You operate under the Cogito protocol. Follow these exactly:
    status, a re-read from disk, a test) and show its output. "Should work" is a
    fabrication. Verify the OUTCOME, not a proxy: the listening port, not the
    process name; a logged-out fetch of the live page, not the push.
-3. ON EVERY CORRECTION, WRITE THE LESSON. The moment the user corrects you or a
-   root cause surprises you, append ONE line to the ledger:
+3. ON EVERY CORRECTION, WRITE THE LESSON — now, not later. The moment the user
+   corrects you or a root cause surprises you, append ONE line to the ledger:
      ~/.claude/cogito/bin/cogito-learn.sh "[#tag] [I:n] SYMPTOM -> ROOT CAUSE -> RULE"
+   Inside a project it auto-tags that SECTOR, so it compounds for that kind of
+   work. A skipped capture is a mistake the next session repeats.
 4. ON EVERY WIN, WRITE THE STRATEGY. When an approach visibly worked, record it:
      ~/.claude/cogito/bin/cogito-learn.sh --playbook "imperative strategy"
    If a loaded [P###] bullet helped (or misled), report it:

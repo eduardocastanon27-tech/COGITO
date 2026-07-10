@@ -37,13 +37,18 @@ load_progress() {  # print a repo's PROGRESS.md (6k-char capped) or a create hin
   fi
 }
 
-write_template() {  # $1 = repo root, $2 = name
-  local root="$1" name="$2" pf="$1/PROGRESS.md" today
+write_template() {  # $1 = repo root, $2 = name, $3 = sector (optional)
+  local root="$1" name="$2" sector="${3:-}" pf="$1/PROGRESS.md" today
   today="$(date -u +%F)"
   [ -f "$pf" ] && { echo "PROGRESS.md already exists in $name — leaving it"; return; }
+  # Whitelist the sector to the fixed 6; anything else becomes <unset>.
+  sector="$(printf '%s' "$sector" | tr '[:upper:]' '[:lower:]' | grep -oE '^(web|game|toy|tracker|data|infra)' || true)"
+  [ -n "$sector" ] || sector="<unset>"
   cat > "$pf" <<EOF
 # $name — project progress
 _Job B state: where this stands + what's left. Auto-loads when a session opens in this repo. **Last verified: $today.**_
+
+**Sector:** $sector   <!-- one of: web game toy tracker data infra — Cogito loads this sector's playbook on open -->
 
 ## What this is
 <one line — what this project is + its live URL if any>
@@ -85,10 +90,10 @@ case "$cmd" in
     fi
     ;;
   init)
-    [ -n "$name" ] || { echo "usage: cogito-project.sh init <name>" >&2; exit 2; }
+    [ -n "$name" ] || { echo "usage: cogito-project.sh init <name> [sector]  (sector: web|game|toy|tracker|data|infra)" >&2; exit 2; }
     target="$PROJECTS/$name"
     [ -d "$target" ] || { echo "no local dir $target — open or create it first" >&2; exit 1; }
-    write_template "$target" "$name"
+    write_template "$target" "$name" "${3:-}"
     ;;
   list)
     echo "Local projects in ${PROJECTS/#"$HOME"/\~}  (● has PROGRESS.md, ○ none):"

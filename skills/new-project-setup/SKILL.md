@@ -34,12 +34,19 @@ gh repo create <name> --public --source=. --remote=origin --push
 ```
 If push fails with GH007 email privacy error → the email wasn't set correctly (step 2).
 
-### 3.5. Turn on Job B project memory (every new project)
+### 3.5. Turn on Job B project memory + declare the sector (every new project)
 ```bash
-~/.claude/cogito/bin/cogito-project.sh init <name>          # writes PROGRESS.md into the repo
+~/.claude/cogito/bin/cogito-project.sh init <name> web      # writes PROGRESS.md + declares the sector
 git add PROGRESS.md && git commit -m "Add PROGRESS.md (Job B project memory)"
 ```
-`PROGRESS.md` is this project's "where are we / what's left" state. It **auto-loads** whenever a session opens in the repo and **auto-commits its own edits** (the cogito Stop hook), so cross-session continuity is on from commit one. Fill in the one-line description + first to-dos as you build.
+Pass the **sector** as the 3rd arg — for a site built with this skill it is always `web`
+(the others are `game|toy|tracker|data|infra`). That writes a `**Sector:** web` line into
+PROGRESS.md, so on every future open Cogito loads the **web sector playbook** (the distilled
+top rules from every prior web build) and any lesson captured here auto-tags `[#sector:web]`.
+`PROGRESS.md` is this project's "where are we / what's left" state. It **auto-loads** whenever
+a session opens in the repo and **auto-commits its own edits** (the cogito Stop hook), so
+cross-session continuity is on from commit one. Fill in the one-line description + first
+to-dos as you build.
 
 ### 4. Deploy to Vercel — IMPORT VIA WEB, not MCP tool
 **Critical pitfall:** `mcp__claude_ai_Vercel__deploy_to_vercel` does NOT deploy. It returns "run vercel deploy" instructions. Ignore it for new projects.

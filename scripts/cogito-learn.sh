@@ -35,6 +35,31 @@ esac
 ARG="${*:-}"
 [ -n "${ARG// /}" ] || usage
 
+# Auto-enrich a lesson with the CURRENT project's sector tag, so a scar captured
+# while working a web (or game/toy/...) project compounds for that KIND of work
+# with zero extra effort. This ENRICHES a model-initiated write; it is NOT a new
+# auto-write trigger. Skipped if the lesson already carries a #sector, if the
+# project declares no sector, or for --playbook/--bump. Whitelisted to the fixed
+# 6, so a garbage declaration adds nothing. herestring (not a pipe) for the -q
+# check — grep -q at a pipeline tail SIGPIPEs its feeder under pipefail.
+if [ "$MODE" = lesson ] && ! grep -qF '[#sector:' <<<"$ARG"; then
+  _sroot="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
+  _sec=""
+  for _c in "$_sroot/PROGRESS.md" "$_sroot/.claude/PROGRESS.md"; do
+    [ -f "$_c" ] || continue
+    _sec="$(grep -iE '^\*\*[Ss]ector:\*\*' "$_c" 2>/dev/null | head -1 \
+      | sed -E 's/.*[Ss]ector:\*\*[[:space:]]*//' | tr '[:upper:]' '[:lower:]' \
+      | grep -oE '^(web|game|toy|tracker|data|infra)' || true)"
+    break
+  done
+  if [ -z "$_sec" ] && [ -f "$HOME/.claude/cogito/sectors.map" ]; then
+    _sec="$(grep -iE "^$(basename "$_sroot")=" "$HOME/.claude/cogito/sectors.map" 2>/dev/null \
+      | head -1 | cut -d= -f2 | tr '[:upper:]' '[:lower:]' \
+      | grep -oE '^(web|game|toy|tracker|data|infra)' || true)"
+  fi
+  [ -n "$_sec" ] && ARG="[#sector:$_sec] $ARG"
+fi
+
 # Next free [P###] id in a playbook file (10# guards the octal trap: P012 -> 12).
 next_pid() {
   local max

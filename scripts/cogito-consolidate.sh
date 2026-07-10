@@ -138,64 +138,137 @@ verify() {
   echo "Now read 'git diff' for over-merge (a rule that swallowed a distinct cause), then commit."
 }
 
+# Scaffold ONE draft skill from a cluster of lessons matching a grep pattern.
+# Shared by the topical-tag loop and the sector loop in suggest_skills.
+scaffold_draft() {  # $1=kw(name/dir)  $2=count  $3=grep-pattern  $4=human label
+  local kw="$1" count="$2" pat="$3" label="$4"
+  local dstub="$ROOT/docs/skill-drafts/cogito-$kw"
+  echo "  [SUGGEST]  $label  ($count lessons) — no covering skill -> draft ${dstub#"$ROOT"/}/SKILL.md"
+  if [ -f "$dstub/SKILL.md" ]; then
+    echo "             draft already exists — review + graduate, or delete"; return
+  fi
+  mkdir -p "$dstub"
+  {
+    echo "---"
+    echo "name: cogito-$kw"
+    echo "description: DRAFT (not indexed). Auto-scaffolded from $count recurring $label lessons. NOT a real skill until it works in 2+ real sessions and is added to skills/INDEX.md."
+    echo "---"
+    echo
+    echo "# $kw — draft skill (UNVERIFIED, not indexed)"
+    echo
+    echo "Scaffolded because $count lessons match $label — a recurring problem domain with no covering skill. The RULE clauses distilled from those lessons:"
+    echo
+    grep '^- ' "$LEDGER" | grep -F "$pat" | awk -F' -> ' '{print "- "$NF}' | head -12
+    echo
+    echo "## Graduation gate (do not skip)"
+    echo "Do NOT add this to skills/INDEX.md until it has demonstrably worked in 2+ INDEPENDENT real sessions (Voyager's verified-skill rule, strengthened because human-judged success is noisier than a code-execution check). Until then it is a hypothesis, not procedural memory. To graduate: flesh out the procedure, prove it live twice, move it under skills/, then add the INDEX.md line."
+  } > "$dstub/SKILL.md"
+  echo "             scaffolded ($count lessons distilled)"
+}
+
 suggest_skills() {
   [ -f "$LEDGER" ] || die "no ledger at $LEDGER"
   local INDEX="$ROOT/skills/INDEX.md"
   local trigger="${COGITO_SKILL_TRIGGER:-8}"
-  local draftroot="$ROOT/docs/skill-drafts"
-  echo "Cogito skill suggestions — recurring clusters (>= $trigger lessons on one tag) with NO covering skill"
+  echo "Cogito skill suggestions — recurring clusters (>= $trigger lessons) with NO covering skill"
   echo "  index: $INDEX"
   [ -f "$INDEX" ] || echo "  (note: INDEX.md missing — every cluster treated as uncovered)"
   echo "  A cluster this large is a recurring problem domain. If no skill covers it, we scaffold a"
   echo "  DRAFT (un-indexed, cannot auto-load). It becomes a real skill only after the graduation gate."
   echo
   local clusters suggested=0
+  # 1) Topical-tag clusters (#web, #deploy, ...).
   clusters="$(grep '^- ' "$LEDGER" | grep -oE '\[#[a-z][a-z-]*\]' | sort | uniq -c | sort -rn || true)"
   while read -r count tag; do
     [ -n "${count:-}" ] || continue
     [ "$count" -ge "$trigger" ] 2>/dev/null || continue
     local kw="${tag//[\[\]#]/}"
-    case "$kw" in critical|process) continue;; esac     # meta-tags (severity / the protocol itself), not skill domains
+    case "$kw" in critical|process) continue;; esac     # meta-tags, not skill domains
     if [ -f "$INDEX" ] && grep -qiw "$kw" "$INDEX" 2>/dev/null; then
       echo "  [covered]  #$kw  ($count lessons) — an indexed skill already addresses this"
       continue
     fi
     suggested=$((suggested + 1))
-    local dstub="$draftroot/cogito-$kw"
-    echo "  [SUGGEST]  #$kw  ($count lessons) — no covering skill -> draft ${dstub#"$ROOT"/}/SKILL.md"
-    if [ -f "$dstub/SKILL.md" ]; then
-      echo "             draft already exists — review + graduate, or delete"
+    scaffold_draft "$kw" "$count" "[#$kw]" "#$kw"
+  done <<< "$clusters"
+  # 2) SECTOR clusters — a maturing sector with no governing skill drafts one too.
+  #    web/toy/tracker already map to skills (web-master/generative-toys/cogstack);
+  #    game/data/infra are uncovered and would draft once they mature.
+  local sec seccount gov
+  for sec in web game toy tracker data infra; do
+    seccount="$(grep '^- ' "$LEDGER" | grep -cF "[#sector:$sec]" || true)"
+    [ "${seccount:-0}" -ge "$trigger" ] 2>/dev/null || continue
+    case "$sec" in web) gov="web-master";; toy) gov="generative-toys";; tracker) gov="cogstack";; *) gov="";; esac
+    if [ -n "$gov" ]; then
+      echo "  [covered]  sector:$sec  ($seccount lessons) — the $gov skill governs this sector"
       continue
     fi
-    mkdir -p "$dstub"
-    {
-      echo "---"
-      echo "name: cogito-$kw"
-      echo "description: DRAFT (not indexed). Auto-scaffolded from $count recurring [#$kw] lessons. NOT a real skill until it works in 2+ real sessions and is added to skills/INDEX.md."
-      echo "---"
-      echo
-      echo "# $kw — draft skill (UNVERIFIED, not indexed)"
-      echo
-      echo "Scaffolded because $count lessons carry [#$kw] — a recurring problem domain with no covering skill. The RULE clauses distilled from those lessons:"
-      echo
-      grep '^- ' "$LEDGER" | grep -F "[#$kw]" | awk -F' -> ' '{print "- "$NF}' | head -12
-      echo
-      echo "## Graduation gate (do not skip)"
-      echo "Do NOT add this to skills/INDEX.md until it has demonstrably worked in 2+ INDEPENDENT real sessions (Voyager's verified-skill rule, strengthened because human-judged success is noisier than a code-execution check). Until then it is a hypothesis, not procedural memory. To graduate: flesh out the procedure, prove it live twice, move it under skills/, then add the INDEX.md line."
-    } > "$dstub/SKILL.md"
-    echo "             scaffolded ($count lessons distilled)"
-  done <<< "$clusters"
+    suggested=$((suggested + 1))
+    scaffold_draft "sector-$sec" "$seccount" "[#sector:$sec]" "sector:$sec"
+  done
   echo
   if [ "$suggested" -eq 0 ]; then
     echo "No uncovered recurring clusters at threshold $trigger — nothing to scaffold."
   else
-    echo "$suggested draft(s) under ${draftroot#"$ROOT"/}/. Review, exercise in real sessions, graduate only per the gate."
+    echo "$suggested draft(s) under docs/skill-drafts/. Review, exercise in real sessions, graduate only per the gate."
   fi
 }
 
+# refresh-sectors — the distillation half of "data -> skills": rebuild each
+# sectors/<x>.md from its [#sector:x] lessons' RULE clauses, ranked by importance.
+# Proposal by default (prints); --apply overwrites the playbooks that have tagged
+# lessons (a hand-seeded playbook with no lessons yet is left untouched). The
+# output is a MECHANICAL extract for a human to tighten, mirroring the consolidate
+# discipline: propose, human gates, converge carries.
+refresh_sectors() {
+  [ -f "$LEDGER" ] || die "no ledger at $LEDGER"
+  local SECDIR="$ROOT/skills/cogito-protocol/sectors" apply=0
+  [ "${1:-}" = "--apply" ] && apply=1
+  echo "Cogito sector-playbook refresh — distill each sector's tagged lessons into sectors/<x>.md"
+  echo "  ledger : $LEDGER"
+  echo "  sectors: $SECDIR"
+  if [ "$apply" = 1 ]; then echo "  MODE: --apply (OVERWRITES sectors that have tagged lessons)"; else echo "  MODE: proposal only (re-run with --apply to write)"; fi
+  echo
+  python3 - "$LEDGER" "$SECDIR" "$apply" <<'PY'
+import sys, re, os
+ledger, secdir, apply = sys.argv[1], sys.argv[2], sys.argv[3] == "1"
+SECTORS = ["web", "game", "toy", "tracker", "data", "infra"]
+lines = [l.rstrip("\n") for l in open(ledger, encoding="utf-8") if l.startswith("- ")]
+def imp(l):
+    m = re.search(r"\[I:(\d+)\]", l); return int(m.group(1)) if m else 5
+def rule(l):
+    l = re.sub(r"\s*\{[^{}]*\}\s*$", "", l)            # strip {provenance}
+    parts = l.split(" -> ")
+    return parts[-1].strip() if len(parts) >= 2 else ""
+for sec in SECTORS:
+    tagged = sorted([l for l in lines if "[#sector:%s]" % sec in l], key=lambda x: -imp(x))
+    head = ["# Sector playbook: %s" % sec,
+            "_Auto-distilled from %d [#sector:%s] lesson(s), ranked by importance. Review + tighten by hand; loaded at project open._" % (len(tagged), sec),
+            ""]
+    out, total, kept = list(head), sum(len(x) + 1 for x in head), 0
+    for l in tagged:
+        r = rule(l)
+        if len(r) <= 8:
+            continue
+        b = "- " + r
+        if kept >= 8 or total + len(b) + 1 > 1200:
+            break
+        out.append(b); total += len(b) + 1; kept += 1
+    content = "\n".join(out) + "\n"
+    print("=== %s: %d tagged, %d bullets, %dB ===" % (sec, len(tagged), kept, len(content)))
+    print(content)
+    if apply and tagged:
+        open(os.path.join(secdir, sec + ".md"), "w", encoding="utf-8").write(content)
+        print("(wrote %s.md)" % sec)
+    elif apply:
+        print("(skipped %s: no tagged lessons — kept the hand-seeded file)" % sec)
+PY
+}
+
 case "${1:-}" in
-  report)         report ;;
-  verify)         verify ;;
-  suggest-skills) suggest_skills ;;
-  *) echo "usage: cogito-consolidate.sh {report|verify|suggest-skills}" >&2; exit 2 ;;
+  report)          report ;;
+  verify)          verify ;;
+  suggest-skills)  suggest_skills ;;
+  refresh-sectors) refresh_sectors "${2:-}" ;;
+  *) echo "usage: cogito-consolidate.sh {report|verify|suggest-skills|refresh-sectors [--apply]}" >&2; exit 2 ;;
 esac

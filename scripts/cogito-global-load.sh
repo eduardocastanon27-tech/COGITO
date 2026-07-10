@@ -94,6 +94,31 @@ if [ -n "$progress" ]; then
   echo "----- (this is the project's own PROGRESS.md — edit it to update; it rides the project repo) -----"
 fi
 
+# 4b. Sector playbook — the "pull the domain knowledge on open" step. When the
+#     project declares a SECTOR (a **Sector:** line in its PROGRESS.md, else a
+#     ~/.claude/cogito/sectors.map "dirname=sector" line), load that sector's
+#     curated top rules so a NEW project of this kind starts on the shoulders of
+#     every prior one. Whitelisted to the fixed 6 so a garbage value can never
+#     point at an arbitrary file. Lazy + doubly guarded (needs a PROGRESS.md AND
+#     a matching playbook file); sits BELOW the always-on critical/core blocks so
+#     it can never disturb them.
+if [ -n "$progress" ]; then
+  sector="$(grep -iE '^\*\*[Ss]ector:\*\*' "$progress" 2>/dev/null | head -1 \
+    | sed -E 's/.*[Ss]ector:\*\*[[:space:]]*//' | tr '[:upper:]' '[:lower:]' \
+    | grep -oE '^(web|game|toy|tracker|data|infra)' || true)"
+  if [ -z "$sector" ] && [ -f "$HOME/.claude/cogito/sectors.map" ]; then
+    sector="$(grep -iE "^$(basename "$root")=" "$HOME/.claude/cogito/sectors.map" 2>/dev/null \
+      | head -1 | cut -d= -f2 | tr '[:upper:]' '[:lower:]' \
+      | grep -oE '^(web|game|toy|tracker|data|infra)' || true)"
+  fi
+  spf="$D/sectors/$sector.md"
+  if [ -n "$sector" ] && [ -f "$spf" ]; then
+    echo
+    echo "----- COGITO sector playbook: $sector (apply these to THIS kind of work) -----"
+    line_cap 1200 < "$spf" 2>/dev/null || true
+  fi
+fi
+
 # (Removed 2026-07-07 audit: hermes-brain.txt pre-render — grep found zero
 #  consumers; re-add only when proxy-side injection is actually wired.)
 

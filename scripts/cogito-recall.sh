@@ -42,6 +42,24 @@ PROJ_SLUG=""
 _ROOT="$(git -C "${CLAUDE_PROJECT_DIR:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
 [ -n "$_ROOT" ] && PROJ_SLUG="$(basename "$_ROOT" | tr '[:upper:]' '[:lower:]')"
 
+# Current SECTOR (from the project's PROGRESS.md **Sector:** line, else the
+# sectors.map fallback) — recall BOOSTS same-sector lessons so a new web project
+# preferentially surfaces web wisdom. Whitelisted to the fixed 6; empty at ~ or
+# an undeclared project (then keyword overlap alone governs, unchanged behavior).
+CUR_SECTOR=""
+_PROOT="${_ROOT:-${CLAUDE_PROJECT_DIR:-$PWD}}"
+for _c in "$_PROOT/PROGRESS.md" "$_PROOT/.claude/PROGRESS.md"; do
+  [ -f "$_c" ] || continue
+  CUR_SECTOR="$(grep -iE '^\*\*[Ss]ector:\*\*' "$_c" 2>/dev/null | head -1 \
+    | sed -E 's/.*[Ss]ector:\*\*[[:space:]]*//' | tr '[:upper:]' '[:lower:]' \
+    | grep -oE '^(web|game|toy|tracker|data|infra)' || true)"
+  break
+done
+if [ -z "$CUR_SECTOR" ] && [ -f "$HOME/.claude/cogito/sectors.map" ]; then
+  CUR_SECTOR="$(grep -iE "^$(basename "$_PROOT")=" "$HOME/.claude/cogito/sectors.map" 2>/dev/null \
+    | head -1 | cut -d= -f2 | tr '[:upper:]' '[:lower:]' | grep -oE '^(web|game|toy|tracker|data|infra)' || true)"
+fi
+
 input="$(cat 2>/dev/null || true)"
 prompt="$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null || true)"
 [ -z "$prompt" ] && exit 0
@@ -52,11 +70,20 @@ MIN_HITS="${COGITO_RECALL_MIN_HITS:-2}"     # min distinct keyword overlaps to c
 # Score each NON-always-loaded lesson + playbook strategy by distinct
 # prompt-keyword overlap; surface the top MAX with >= MIN_HITS. One python pass
 # over ~100 lines — fast, no deps.
-python3 - "$LEDGER" "$prompt" "$MAX" "$MIN_HITS" "$PLAYBOOK" "$PROJ_SLUG" <<'PY' 2>/dev/null || exit 0
+python3 - "$LEDGER" "$prompt" "$MAX" "$MIN_HITS" "$PLAYBOOK" "$PROJ_SLUG" "$CUR_SECTOR" <<'PY' 2>/dev/null || exit 0
 import sys, re, os
 ledger, prompt, maxn, minhits = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
 playbook = sys.argv[5] if len(sys.argv) > 5 else ''
 proj_slug = (sys.argv[6] if len(sys.argv) > 6 else '').lower()
+cur_sector = (sys.argv[7] if len(sys.argv) > 7 else '').lower()
+
+# Sector membership + importance of a lesson line (for ranking).
+SECTOR_RE = re.compile(r"\[#sector:([a-z]+)\]")
+IMP_RE    = re.compile(r"\[I:(\d+)\]")
+# Strip the PROGRAMMATIC tags (sector/proj) before keyword matching so a
+# [#sector:game] tag can't inject a false "game" keyword hit; real lesson TEXT
+# (and topical tags) still match normally.
+TAGSTRIP  = re.compile(r"\[#(?:sector|proj):[a-z0-9_-]+\]", re.I)
 
 # A lesson tagged [#proj:X] is specific to project X; suppress it when the current
 # project is a DIFFERENT one. Untagged lessons are generic and always eligible.
@@ -77,6 +104,7 @@ please help let go going keep list see know learn heard good best update current
 me my we our us still here there back take give given thing done fix fixed make build built""".split())
 
 def toks(s):
+    s = TAGSTRIP.sub("", s)
     return {w for w in re.findall(r"[a-z][a-z0-9_-]{3,}", s.lower()) if w not in STOP}
 
 pt = toks(prompt)
@@ -95,7 +123,14 @@ for line in open(ledger, encoding="utf-8"):
         continue
     hits = pt & toks(line)
     if len(hits) >= minhits:
-        scored.append((len(hits), line.rstrip()))
+        # Rank = raw keyword hits + same-sector boost (+2) + 0.1*importance, so a
+        # same-sector or higher-importance lesson outranks an equal-keyword one.
+        # The MIN_HITS gate stays on RAW hits — sector never injects noise.
+        line_sectors = SECTOR_RE.findall(line)
+        m = IMP_RE.search(line)
+        imp = int(m.group(1)) if m else 5
+        boost = 2 if (cur_sector and cur_sector in line_sectors) else 0
+        scored.append((len(hits) + boost + 0.1 * imp, line.rstrip()))
 
 # playbook strategies score the same way (top-5-by-helpful already ride the
 # loader; recalling by relevance here catches the deferred rest)
