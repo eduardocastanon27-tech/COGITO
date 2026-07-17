@@ -95,6 +95,51 @@ sys.exit(1)' 2>/dev/null; then
   fi
 }
 
+# ---- faceless git identity (WARN, not deny) ---------------------------------------
+# The most-recurred #critical scar (x4) is prose-only: a `git commit` in a
+# Cogito-family repo leaks Eduardo's handle/email unless the LOCAL identity was set
+# to the faceless Cogito identity first. This mechanizes the reminder — but as a
+# non-blocking WARN ("ask"), never a deny: the fix is trivial and a false read of
+# repo state must never brick a commit. Fail-open on every axis (not a repo, no
+# origin, git missing, wrong-cwd -> no warn).
+
+# is_git_history_op <command> -> exit 0 iff the command runs a git history op
+# (commit / push) at command position. Pure string check — selftestable. Quoted
+# spans are stripped first so a message that merely MENTIONS `git commit` is not a op.
+is_git_history_op() {
+  printf '%s' "$1" | python3 -c 'import sys,re
+s=sys.stdin.read(); q=chr(39); d=chr(34)
+s=re.sub(q+"[^"+q+"]*"+q,"",s)
+s=re.sub(d+"[^"+d+"]*"+d,"",s)
+for seg in re.split(r"[;|&()\n]+", s):
+    if re.search(r"^\s*git\s+(-[^\s]+\s+|-c\s+[^\s]+\s+)*(commit|push)(\s|$)", seg):
+        sys.exit(0)
+sys.exit(1)' 2>/dev/null
+}
+
+# cogito_identity_missing -> exit 0 iff the CWD is inside a git repo whose origin is
+# a Cogito-family repo AND the local identity is NOT the faceless Cogito identity.
+# Any inability to determine this -> exit 1 (fail-open: emit no warn).
+COGITO_NAME="Cogito"
+COGITO_EMAIL="291881939+COGITO-SUM-cloude@users.noreply.github.com"
+cogito_identity_missing() {
+  local remote name email
+  remote="$(git config --get remote.origin.url 2>/dev/null)" || return 1
+  [ -n "$remote" ] || return 1
+  printf '%s' "$remote" | grep -qiE 'cogito-sum-cloude|291881939' || return 1
+  name="$(git config user.name 2>/dev/null)"
+  email="$(git config user.email 2>/dev/null)"
+  [ "$name" = "$COGITO_NAME" ] && [ "$email" = "$COGITO_EMAIL" ] && return 1
+  return 0
+}
+
+identity_warn_reason() {
+  printf '%s' "this looks like a git history op (commit/push) in a Cogito-family repo, but the LOCAL git identity is not the faceless Cogito identity — committing now would leak the real handle/email (the x4-recorded #critical git scar). Set it for THIS repo before committing:
+  git config user.name \"$COGITO_NAME\"
+  git config user.email \"$COGITO_EMAIL\"
+Then re-run. (This is a warning, not a hard block — proceed only if you truly mean to commit under a different identity.)"
+}
+
 # ---- selftest: the contract, as runnable assertions -------------------------------
 selftest() {
   local fails=0
@@ -183,6 +228,27 @@ selftest() {
   check allow 'echo "curl -k is banned here"'        # mention in a quoted string
   check allow 'git commit -m "never use curl -k or NODE_TLS_REJECT_UNAUTHORIZED=0"'
   check allow 'grep NODE_TLS_REJECT_UNAUTHORIZED=0 server.js'  # unquoted MENTION at arg position (fp fixed 2026-07-07)
+
+  # ---- history-op detection (feeds the faceless-identity WARN; env-independent) ----
+  checkh() { # checkh <yes|no> <command>  — is_git_history_op string detection only
+    local want="$1" cmd="$2" got=no
+    is_git_history_op "$cmd" && got=yes
+    if [ "$got" = "$want" ]; then printf '  ok   [hop:%s] %s\n' "$want" "$cmd"
+    else printf '  FAIL hop want=%s got=%s : %s\n' "$want" "$got" "$cmd"; fails=$((fails+1)); fi
+  }
+  checkh yes 'git commit -m "x"'
+  checkh yes 'git commit'                               # bare commit (opens editor)
+  checkh yes 'git push origin feature'
+  checkh yes 'git add -A && git commit -m "y"'          # commit after an operator
+  checkh yes 'git -c user.name=x commit -m "z"'         # -c passthrough before commit
+  checkh yes 'git --no-pager push'                      # global flag before push
+  checkh yes 'cd repo && git commit --amend --no-edit'
+  checkh no  'git status'
+  checkh no  'git log --oneline'
+  checkh no  'git config user.name "Cogito"'            # setting identity is not a history op
+  checkh no  'echo "git commit -m x"'                   # mention in a quoted string
+  checkh no  'git commit-tree deadbeef'                 # commit-tree is not commit
+  checkh no  'git pull origin main'                     # pull is not a history op here
   echo
   [ "$fails" -eq 0 ] && echo "selftest: ALL PASS" || { echo "selftest: $fails FAILED"; return 1; }
 }
@@ -202,7 +268,18 @@ try:
 except Exception: pass' 2>/dev/null || true)"
   [ -n "$cmd" ] || exit 0                 # non-Bash / no command / parse failed -> allow
   reason="$(classify "$cmd")"
-  [ -n "$reason" ] || exit 0              # not known-bad -> allow
+  if [ -z "$reason" ]; then
+    # not known-bad by classify. One more, SOFT check before allowing: a git history
+    # op in a Cogito-family repo without the faceless identity -> WARN via "ask"
+    # (surface + let the operator proceed), NOT a deny. Fail-open: any error -> allow.
+    if is_git_history_op "$cmd" && cogito_identity_missing; then
+      if printf '%s' "$(identity_warn_reason)" | python3 -c 'import sys,json
+print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"cogito-guard: "+sys.stdin.read()}}))' 2>/dev/null; then
+        exit 0
+      fi
+    fi
+    exit 0                                # allow
+  fi
   if printf '%s' "$reason" | python3 -c 'import sys,json
 print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"cogito-guard blocked this — "+sys.stdin.read()}}))' 2>/dev/null; then
     exit 0
