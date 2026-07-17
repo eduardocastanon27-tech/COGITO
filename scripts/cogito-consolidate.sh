@@ -265,10 +265,36 @@ for sec in SECTORS:
 PY
 }
 
+# graduate — the HOW lane of the Cogito<->native merge. A PLAYBOOK strategy that
+# has repeatedly proven itself (helpful >= threshold, harmful 0) is a candidate to
+# become a real executable SKILL.md. This REPORTS the candidates (authoring a skill
+# is human/`/skill` work); the bullet stays — the skill is its graduation, not its
+# replacement. Distinct from suggest-skills (which drafts from lesson CLUSTERS).
+graduate() {
+  [ -f "$PLAYBOOK" ] || die "no playbook at $PLAYBOOK"
+  local thr="${COGITO_GRADUATE_HELPFUL:-3}" found=0 h m
+  echo "Cogito playbook graduation — strategies proven >= $thr helpful (harmful:0) = HOW-lane skill candidates"
+  echo
+  while IFS= read -r b; do
+    h="$(printf '%s' "$b" | sed -n 's/.*\[helpful:\([0-9]*\)\].*/\1/p')"
+    m="$(printf '%s' "$b" | sed -n 's/.*\[harmful:\([0-9]*\)\].*/\1/p')"
+    if [ "${h:-0}" -ge "$thr" ] && [ "${m:-0}" -eq 0 ]; then
+      found=$((found + 1)); printf '  [GRADUATE] %s\n' "$b"
+    fi
+  done < <(grep '^- \[P' "$PLAYBOOK" 2>/dev/null || true)
+  echo
+  if [ "$found" -eq 0 ]; then
+    echo "No strategies at the bar yet — bump bullets with 'cogito-learn.sh --bump P###:helpful' as they prove out."
+  else
+    echo "$found proven strateg(ies). Author each into a real SKILL.md (by hand or the Hermes /skill machinery) so a proven strategy becomes an executable procedure, not just prose."
+  fi
+}
+
 case "${1:-}" in
   report)          report ;;
   verify)          verify ;;
   suggest-skills)  suggest_skills ;;
   refresh-sectors) refresh_sectors "${2:-}" ;;
-  *) echo "usage: cogito-consolidate.sh {report|verify|suggest-skills|refresh-sectors [--apply]}" >&2; exit 2 ;;
+  graduate)        graduate ;;
+  *) echo "usage: cogito-consolidate.sh {report|verify|suggest-skills|refresh-sectors [--apply]|graduate}" >&2; exit 2 ;;
 esac
