@@ -18,10 +18,24 @@
 #   cogito-review.sh list               every lesson with box / due / overdue
 #   cogito-review.sh grade N <result>   record a recall. result = pass|fail (aliases
 #                                       accepted: good/easy=pass, again/hard=fail).
+#   cogito-review.sh add "<title>" "<cue>"   enrol a new concept at box 1 (due tomorrow).
+#
+# Per-learner log: set COGITO_LEARNER=<name> to operate on learners/<name>/log.md
+# instead of the shared docs/learning/log.md (the live homework tutor uses this so each
+# student has their own spacing ladder). Unset = the global log, unchanged.
 set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-LOG="$ROOT/docs/learning/log.md"
-[ -f "$LOG" ] || { echo "cogito-review: no learning log at $LOG" >&2; exit 1; }
+if [ -n "${COGITO_LEARNER:-}" ]; then
+  LOG="$ROOT/learners/$COGITO_LEARNER/log.md"
+  if [ ! -f "$LOG" ]; then                      # first session for this learner: seed an empty log
+    mkdir -p "$(dirname "$LOG")"
+    printf '# Cogito — Learning Log (%s)\n\nPer-learner spaced-repetition record, enrolled by the live tutor and\ngraded on the next session (Leitner boxes 1..6 -> 1/3/7/16/35/90 days).\n' \
+      "$COGITO_LEARNER" > "$LOG"
+  fi
+else
+  LOG="$ROOT/docs/learning/log.md"
+  [ -f "$LOG" ] || { echo "cogito-review: no learning log at $LOG" >&2; exit 1; }
+fi
 
 exec python3 - "$LOG" "$@" <<'PY'
 import sys, re, datetime
@@ -123,6 +137,29 @@ if cmd == 'grade':
     print(f"Lesson {num}: {result} -> box {oldbox}->{newbox}, next due {newdue.isoformat()} (in {iv}d)")
     sys.exit(0)
 
-sys.stderr.write(f"unknown command: {cmd}\nusage: cogito-review.sh {{due [--quiet] | list | grade N <result>}}\n")
+if cmd == 'add':
+    if len(args) < 3:
+        sys.stderr.write('usage: cogito-review.sh add "<title>" "<recap cue>"\n'); sys.exit(2)
+    title = re.sub(r'\s+', ' ', args[1]).strip()
+    cue   = re.sub(r'\s+', ' ', args[2]).strip()
+    if not title or not cue:
+        sys.stderr.write('add: title and cue must both be non-empty\n'); sys.exit(2)
+    # skip a duplicate title already in the log (idempotent re-enrolment)
+    if any(l['title'].lower() == title.lower() for l in lessons):
+        print(f"already enrolled: {title}"); sys.exit(0)
+    num = (max((l['num'] for l in lessons), default=0)) + 1
+    tomorrow = today + datetime.timedelta(days=1)
+    block = (f"\n---\n\n## Lesson {num} — {title}\n"
+             f"- **Where it came from:** live tutor session {today.isoformat()} "
+             f"(the student worked this one through).\n"
+             f"- **Recap cue (ask next time):** {cue}\n"
+             f"- **Review:** box:1 due:{tomorrow.isoformat()}\n")
+    with open(LOG, 'a') as f:
+        f.write(block)
+    print(f"enrolled Lesson {num} — {title}  (box 1, due {tomorrow.isoformat()})")
+    sys.exit(0)
+
+sys.stderr.write(f"unknown command: {cmd}\nusage: cogito-review.sh "
+                 "{due [--quiet] | list | grade N <result> | add \"<title>\" \"<cue>\"}\n")
 sys.exit(2)
 PY

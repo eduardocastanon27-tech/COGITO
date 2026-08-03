@@ -64,7 +64,10 @@ if [ -f "$L" ]; then
   # budget on a web-only CSS lesson while every boundary rule was cut.
   # Fallback to the old selector if no lesson is flagged yet, so an un-migrated
   # ledger degrades to the previous behaviour rather than loading nothing.
-  crit="$(grep -E '^- .*\[#always\]' "$L" 2>/dev/null || true)"
+  # Anchor the flag to the LEADING tag block ('- [#always]...'), never '.*' — a
+  # lesson whose PROSE mentions [#always] must not thereby always-load. (Caught
+  # 2026-08-03: the lesson describing this very flag matched itself, +1038B.)
+  crit="$(grep -E '^- \[#always\]' "$L" 2>/dev/null || true)"
   if [ -z "$crit" ]; then
     crit="$(grep -E '^- .*(\[I:(9|10)\]|\[#critical\])' "$L" 2>/dev/null \
       | sed -n 's/.*\[I:\([0-9]*\)\].*/\1 &/p' | sort -rn | cut -d' ' -f2- || true)"
