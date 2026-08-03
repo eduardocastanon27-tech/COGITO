@@ -115,9 +115,14 @@ scored = []
 for line in open(ledger, encoding="utf-8"):
     if not line.startswith("- "):
         continue
-    # match the [#critical] TAG, not the bare word — a lesson MENTIONING it is
-    # not always-loaded and must stay recallable (caught 2026-07-03)
-    if "[#critical]" in line or re.search(r"\[I:(9|10)\]", line):   # already always-loaded
+    # Skip only what the loader ACTUALLY always-loads: the [#always] flag. Keying
+    # this off [#critical]/[I:9-10] was correct while those selected the loaded
+    # set, but always-loading is now decoupled from severity — so a demoted-but-
+    # severe lesson kept #critical, lost its loader slot, AND was skipped here,
+    # i.e. excluded from both paths. Demotion silently became deletion; measured
+    # 6/6 misses on 2026-08-03 before this fix. Anchor to the leading tag block so
+    # a lesson merely MENTIONING the flag stays recallable (caught 2026-07-03).
+    if line.startswith("- [#always]"):   # genuinely already in every prompt
         continue
     if cross_project(line):                                         # another project's specifics
         continue
