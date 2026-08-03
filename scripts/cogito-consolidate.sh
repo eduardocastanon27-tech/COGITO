@@ -77,7 +77,12 @@ verify() {
   # context lines (' - text') do not match these patterns.
   removed="$(git -C "$ROOT" diff "$BASE" -- "$LEDGER"  | grep '^-- ' | sed 's/^-//' || true)"
   added_active="$(git -C "$ROOT" diff "$BASE" -- "$LEDGER"  | grep '^+- ' | sed 's/^+//' || true)"
-  added_archive="$(git -C "$ROOT" diff "$BASE" -- "$ARCHIVE" | grep '^+- ' | sed 's/^+//' || true)"
+  # Read the archive's CURRENT CONTENT, not the diff. Checking only what this
+  # change ADDED to the archive means a line archived in an EARLIER commit reads
+  # as unaccounted, so the gate false-FAILS on correctly-preserved lessons — and
+  # a gate that fails when nothing is wrong teaches you to click past it
+  # (caught 2026-08-03: 5 strategies archived on 2026-07-24 flagged as lost).
+  added_archive="$(grep '^- ' "$ARCHIVE" 2>/dev/null || true)"
 
   if [ -z "$removed" ] && [ -z "$added_active" ]; then
     echo "No consolidation changes in the active ledger (vs $BASE). Nothing to verify."
@@ -88,10 +93,20 @@ verify() {
   # exits at first match and SIGPIPEs the printf feeding it (exit 141), so a
   # SUCCESSFUL match randomly read as failure — the gate false-FAILED with a
   # different missing-set on every run (caught 2026-07-03).
+  # A removed line is only LOST if it is neither archived nor still present in the
+  # active ledger under an edited form. Re-tagging a lesson in place (e.g. adding
+  # [#always]) makes git report delete+add, which is an EDIT, not a deletion —
+  # mirrors the counter-bump allowance the playbook check already makes below.
+  # Compare on prose with all [#tag]/[I:N] markers stripped (caught 2026-08-03).
+  local prose
+  strip_markers() { sed -E 's/\[#[a-z:-]+\]//g; s/\[I:[0-9]+\]//g; s/^- +//; s/  +/ /g; s/^ +//; s/ +$//'; }
   missing=""
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    grep -qxF -- "$line" <<< "$added_archive" || missing+="$line"$'\n'
+    grep -qxF -- "$line" <<< "$added_archive" && continue
+    prose="$(printf '%s' "$line" | strip_markers)"
+    printf '%s\n' "$added_active" | strip_markers | grep -qxF -- "$prose" && continue
+    missing+="$line"$'\n'
   done <<< "$removed"
 
   count_rm="$(printf '%s' "$removed"        | grep -c '^- ' || true)"
@@ -119,7 +134,8 @@ verify() {
   local pb_removed pb_added pb_archived pb_missing stripped
   pb_removed="$(git -C "$ROOT" diff "$BASE" -- "$PLAYBOOK" 2>/dev/null | grep '^-- ' | sed 's/^-//' || true)"
   pb_added="$(git -C "$ROOT" diff "$BASE" -- "$PLAYBOOK" 2>/dev/null | grep '^+- ' | sed 's/^+//' || true)"
-  pb_archived="$(git -C "$ROOT" diff "$BASE" -- "$PB_ARCHIVE" 2>/dev/null | grep '^+- ' | sed 's/^+//' || true)"
+  # Current content, not the diff — same false-FAIL as the lessons archive above.
+  pb_archived="$(grep '^- ' "$PB_ARCHIVE" 2>/dev/null || true)"
   pb_missing=""
   while IFS= read -r line; do
     [ -z "$line" ] && continue

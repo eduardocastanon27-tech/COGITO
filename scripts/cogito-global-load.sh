@@ -39,6 +39,12 @@ mkdir -p "$HOME/.claude/cogito" 2>/dev/null || true
 # Cap helper: cut on LINE boundaries at ~N chars (head -c mid-line confuses).
 line_cap() { awk -v m="$1" '{n+=length($0)+1; if(n>m) exit; print}'; }
 
+# Budget for the always-loaded lesson set. Raised 2400 -> 3200 on 2026-08-03:
+# the council-approved [#always] set is 2173B, and the old 2400 left no room for
+# the demoted-topics pointer or for a 9th lesson ever being promoted. Keep this
+# TIGHT — every byte here rides every turn of every session.
+CRIT_CAP=3200
+
 # 1. The operating directives — the weak-model payload.
 if [ -f "$D/COGITO-CORE.md" ]; then
   head -c 2400 "$D/COGITO-CORE.md" 2>/dev/null || true
@@ -51,15 +57,29 @@ fi
 #    word — a lesson merely mentioning it must not always-load).
 if [ -f "$L" ]; then
   echo "----- COGITO: critical lessons (never repeat these) -----"
-  crit="$(grep -E '^- .*(\[I:(9|10)\]|\[#critical\])' "$L" 2>/dev/null \
-    | sed -n 's/.*\[I:\([0-9]*\)\].*/\1 &/p' | sort -rn | cut -d' ' -f2- || true)"
-  printf '%s\n' "$crit" | line_cap 2400 || true
-  # Contract: ALL criticals load. Warn on overflow instead of truncating silently.
-  crit_total=$(printf '%s' "$crit" | wc -c)
-  crit_shown=$(printf '%s\n' "$crit" | line_cap 2400 | wc -c)
-  if [ "$crit_total" -gt "$crit_shown" ]; then
-    echo "(!! critical set ${crit_total}B exceeds ${crit_shown}B shown — some criticals NOT loaded; run cogito-consolidate)"
+  # Always-load is an EXPLICIT flag ([#always]), decoupled from the [I:] severity
+  # digit. Selecting on [I:9-10] conflated "severe" with "must ride every turn":
+  # 12 of 14 lessons sat at I:9-10, so the cap was decided by sort's arbitrary
+  # full-line tiebreak — on 2026-08-03 that loaded 4 of 14, spending 42% of the
+  # budget on a web-only CSS lesson while every boundary rule was cut.
+  # Fallback to the old selector if no lesson is flagged yet, so an un-migrated
+  # ledger degrades to the previous behaviour rather than loading nothing.
+  crit="$(grep -E '^- .*\[#always\]' "$L" 2>/dev/null || true)"
+  if [ -z "$crit" ]; then
+    crit="$(grep -E '^- .*(\[I:(9|10)\]|\[#critical\])' "$L" 2>/dev/null \
+      | sed -n 's/.*\[I:\([0-9]*\)\].*/\1 &/p' | sort -rn | cut -d' ' -f2- || true)"
   fi
+  printf '%s\n' "$crit" | line_cap "$CRIT_CAP" || true
+  # Contract: ALL flagged lessons load. Warn on overflow instead of truncating silently.
+  crit_total=$(printf '%s' "$crit" | wc -c)
+  crit_shown=$(printf '%s\n' "$crit" | line_cap "$CRIT_CAP" | wc -c)
+  if [ "$crit_total" -gt "$crit_shown" ]; then
+    echo "(!! always-set ${crit_total}B exceeds ${crit_shown}B cap — some NOT loaded; run cogito-consolidate or demote one)"
+  fi
+  # Demoted-but-severe lessons are grep-retrievable only. A pointer is what makes
+  # "demoted" mean retrievable instead of deleted (council 2026-08-03).
+  demoted="$(grep -cE '^- .*(\[#critical\]|\[I:(9|10)\])' "$L" 2>/dev/null | grep -v '^0$' || true)"
+  [ -n "$demoted" ] && echo "  (+ severe but situational — grep $L: systemd/child-process death, checker-poisoning, tailwind-v4 cascade, autobuild self-signal, timeout-invariant, brain-copy sync)"
   echo "----- COGITO tag index (grep a [#tag] in $L for depth) -----"
   grep '^- ' "$L" 2>/dev/null | grep -oE '\[#[a-z][a-z-]*\]' | sort | uniq -c | sort -rn \
     | head -12 | sed 's/^/  /' || true
@@ -121,5 +141,9 @@ fi
 
 # (Removed 2026-07-07 audit: hermes-brain.txt pre-render — grep found zero
 #  consumers; re-add only when proxy-side injection is actually wired.)
+
+# 5. (Removed 2026-07-24: spaced-repetition recap no longer injected into
+#    dev/Hermes sessions — learner spaced-rep is now owned by the Hermes tutor
+#    (cogito-teacher/cogito-review.sh still drives it on the learner path).)
 
 exit 0
