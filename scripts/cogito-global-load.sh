@@ -81,8 +81,11 @@ if [ -f "$L" ]; then
   fi
   # Demoted-but-severe lessons are grep-retrievable only. A pointer is what makes
   # "demoted" mean retrievable instead of deleted (council 2026-08-03).
-  demoted="$(grep -cE '^- .*(\[#critical\]|\[I:(9|10)\])' "$L" 2>/dev/null | grep -v '^0$' || true)"
-  [ -n "$demoted" ] && echo "  (+ severe but situational — grep $L: systemd/child-process death, checker-poisoning, tailwind-v4 cascade, autobuild self-signal, timeout-invariant, brain-copy sync)"
+  # Count only the DEMOTED ones (severe but not flagged), and describe how to reach
+  # them rather than listing topics — a frozen list silently goes stale the moment
+  # a 7th lesson is demoted, which is the same rot this pointer exists to prevent.
+  demoted="$(grep -E '^- ' "$L" 2>/dev/null | grep -E '(\[#critical\]|\[I:(9|10)\])' | grep -cv '^- \[#always\]' || true)"
+  [ "${demoted:-0}" -gt 0 ] && echo "  (+ ${demoted} more severe-but-situational lessons are NOT loaded here — they surface via keyword recall, or: grep -E '\[#critical\]|\[I:(9|10)\]' $L | grep -v '\[#always\]')"
   echo "----- COGITO tag index (grep a [#tag] in $L for depth) -----"
   grep '^- ' "$L" 2>/dev/null | grep -oE '\[#[a-z][a-z-]*\]' | sort | uniq -c | sort -rn \
     | head -12 | sed 's/^/  /' || true
