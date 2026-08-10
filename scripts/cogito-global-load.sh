@@ -91,11 +91,39 @@ if [ -f "$L" ]; then
     | head -12 | sed 's/^/  /' || true
 fi
 
-# 3. Top strategies (ACE playbook) by proven usefulness.
+# 3. Top strategies (ACE playbook) by proven usefulness, PLUS a rotating trial
+#    slot of never-validated ones.
+#
+#    Why the trial slot exists: selecting purely by [helpful:] is a closed loop.
+#    Only the top 3 ever load, so only those 3 can be observed working, so only
+#    they can be bumped — and the other 82 sit at [helpful:0][harmful:0] forever
+#    through no fault of their own. Then cogito_decay quarantines them for being
+#    unbumped. That is not decay of bad strategies, it is starvation of unseen
+#    ones: on Aug 10 2026 the playbook was 85 strategies with 76 never bumped and
+#    46 about to become decay-eligible, having never once been shown to a session.
+#    Exploit the proven, but always spend a couple of slots exploring, so a
+#    strategy is quarantined for FAILING rather than for never getting a turn.
 if [ -f "$P" ] && grep -q '^- \[P' "$P" 2>/dev/null; then
   echo "----- COGITO: top strategies (APPLY these; report use: cogito-learn.sh --bump P###:helpful) -----"
   grep '^- \[P' "$P" 2>/dev/null | sed -n 's/.*\[helpful:\([0-9]*\)\].*/\1 &/p' \
-    | sort -rn | head -3 | cut -d' ' -f2- | line_cap 900 || true
+    | sort -rn | awk '$1>0' | head -3 | cut -d' ' -f2- | line_cap 900 || true
+
+  # Rotating trial slot: 2 unproven strategies per session, cycled by a counter
+  # so every one comes up in turn instead of the same two every time.
+  TRIALS=2
+  OFF_F="$HOME/.claude/cogito/trial-offset"
+  unproven="$(grep '^- \[P' "$P" 2>/dev/null | grep -F '[helpful:0][harmful:0]' || true)"
+  n_unproven="$(printf '%s' "$unproven" | grep -c '^- \[P' || true)"
+  if [ "${n_unproven:-0}" -gt 0 ]; then
+    off="$(cat "$OFF_F" 2>/dev/null || echo 0)"
+    case "$off" in ''|*[!0-9]*) off=0 ;; esac
+    echo "--- on trial (unproven — APPLY if it fits, then bump helpful OR harmful; silence keeps it stuck) ---"
+    printf '%s\n' "$unproven" | awk -v o="$off" -v k="$TRIALS" \
+      '{a[NR]=$0} END{ if(NR==0) exit; if(k>NR) k=NR;
+                       for(i=0;i<k;i++) print a[((o+i)%NR)+1] }' 2>/dev/null \
+      | line_cap 820 || true
+    echo $(( (off + TRIALS) % n_unproven )) > "$OFF_F" 2>/dev/null || true
+  fi
 fi
 
 echo "Cogito global brain loaded (lean mode). Write-back from ANY session:"
